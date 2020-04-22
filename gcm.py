@@ -37,8 +37,8 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--directory", type=str,
                         help="Path to working directory", required=False, default=None)
     
-    parser.add_argument("-i", "--sequences", type=str,
-                        help="Path to input unaligned sequences", required=False, default=None)
+    #parser.add_argument("-i", "--sequences", type=str,
+    #                    help="Path to input unaligned sequences", required=False, default=None)
 
     parser.add_argument("-s", "--subalignments", type=str, nargs="+",
                         help="Paths to input subalignment files", required=True)

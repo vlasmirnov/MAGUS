@@ -36,12 +36,22 @@ class Configs:
     
 
 def buildConfigs(args):
-    #Configs.workingDir = args.directory if args.directory else os.getcwd() 
-    Configs.workingDir = args.directory if args.directory is not None else os.path.dirname(args.output)
-    Configs.sequencesPath = args.sequences
-    Configs.subsetPaths = args.subalignments
-    #Configs.guideTreePath = args.guidetree
-    Configs.outputPath = args.output
+    Configs.outputPath = os.path.abspath(args.output)
+    Configs.workingDir = os.path.abspath(args.directory) if args.directory is not None else os.path.dirname(Configs.outputPath)
+    if not os.path.exists(Configs.workingDir):
+        os.makedirs(Configs.workingDir)
+    
+    #Configs.sequencesPath = os.path.abspath(args.sequences)    
+    #Configs.subsetPaths = args.subalignments
+    Configs.subsetPaths = []
+    for p in args.subalignments:
+        path = os.path.abspath(p)
+        if os.path.isdir(path):
+            for filename in os.listdir(path):
+                Configs.subsetPaths.append(os.path.join(path, filename))
+        else:
+            Configs.subsetPaths.append(path)
+    #Configs.guideTreePath = os.path.abspath(args.guidetree)
     
     Configs.mafftPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mafft/mafft")
     Configs.mafftRuns = args.mafftruns if args.mafftruns is not None else Configs.mafftRuns
