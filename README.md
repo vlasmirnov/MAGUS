@@ -29,9 +29,18 @@ A few basic ways of running GCM are shown below.
 
 **python3 ../gcm.py -s subalignments -o gcm_result.txt**
 
-**-r** and **-m** specify the number of MAFFT backbones and their maximum size, respectively. Default to 10 and 200.
+**-b** specifies the directory with user-provided backbone alignment files. If omitted, they will be generated with MAFFT
 
-**python3 ../gcm.py -d outputs -s subalignments -r 10 -m 200 -o gcm_result.txt**
+**python3 ../gcm.py -d outputs -s subalignments -b backbones -o gcm_result.txt**
+
+Instead of passing a directory with **-b**, you can pass a list of backbone files
+
+**python3 ../gcm.py -d outputs -s subalignments -b backbones/backbone_1.txt backbones/backbone_2.txt -o gcm_result.txt**
+
+**-r** and **-m** specify the number of MAFFT backbones and their maximum size, respectively. Default to 10 and 200.  
+**-f** specifies the MCL inflation factor. Defaults to 4.0
+
+**python3 ../gcm.py -d outputs -s subalignments -r 10 -m 200 -f 2.5 -o gcm_result.txt**
 
 Instead of passing a directory with **-s**, you can pass a list of subalignment files
 
