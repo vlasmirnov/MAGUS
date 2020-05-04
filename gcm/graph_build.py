@@ -26,21 +26,29 @@ def buildGraph(graph):
     time2 = time.time()
     Configs.log("Compiled backbone alignments and graph in {} sec..".format(time2-time1))
         
-
-def buildMatrix(graph):           
-    numSubsets = len(graph.subalignments)
+def buildMatrix(graph):
     graph.matrix = [{} for i in range(graph.matrixSize)]
+    graph.matrixLock = threading.Lock()
     
+    if Configs.backbonePaths is not None and len(Configs.backbonePaths) > 0:
+        for backboneAlignment in Configs.backbonePaths:
+            Configs.log("Feeding backbone file {} to the graph..".format(backboneAlignment))
+            addAlignmentFileToGraph(backboneAlignment, graph)
+            Configs.log("Fed backbone file {} to the graph.".format(backboneAlignment))
+            
+    else:
+        buildBackboneAlignmentsAndMatrix(graph)
+        
+def buildBackboneAlignmentsAndMatrix(graph):
+    Configs.log("Launching {} backbones with {} workers..".format(Configs.mafftRuns, Configs.numCores))
+        
+    numSubsets = len(graph.subalignments)
     minSubalignmentLength = min([len(subset) for subset in graph.subalignments])
     backboneSubsetSize = max(1, min(minSubalignmentLength, int(Configs.mafftSize/numSubsets)))
     
-    graphLock = threading.Lock()
-    
-    Configs.log("Launching {} backbones with {} workers..".format(Configs.mafftRuns, Configs.numCores))
-    
     with concurrent.futures.ThreadPoolExecutor(max_workers = Configs.numCores) as executor:
     #with concurrent.futures.ThreadPoolExecutor(max_workers = 4) as executor:
-        jobs = {executor.submit(addBackboneToGraph, graph, backboneSubsetSize, n+1, graphLock) : n+1
+        jobs = {executor.submit(addMafftBackboneToGraph, graph, backboneSubsetSize, n+1) : n+1
                    for n in range(Configs.mafftRuns)}
         for job in concurrent.futures.as_completed(jobs):
             try:
@@ -52,7 +60,7 @@ def buildMatrix(graph):
                         
     Configs.log("All workers done..")
 
-def addBackboneToGraph(graph, backboneSubsetSize, backboneIndex, graphLock):
+def addMafftBackboneToGraph(graph, backboneSubsetSize, backboneIndex):
     unalignedFile = os.path.join(Configs.workingDir, "backbone_{}_unalign.txt".format(backboneIndex))
     alignedFile = os.path.join(Configs.workingDir, "backbone_{}_mafft.txt".format(backboneIndex))
     if not os.path.exists(unalignedFile):
@@ -70,13 +78,16 @@ def addBackboneToGraph(graph, backboneSubsetSize, backboneIndex, graphLock):
         Configs.log("Launching MAFFT on backbone {}..".format(backboneIndex))                  
         external_tools.runMafft(unalignedFile, None, Configs.workingDir, alignedFile, Configs.numCores)
     
+    Configs.log("Feeding backbone {} to the graph..".format(backboneIndex))
+    addAlignmentFileToGraph(alignedFile, graph)                            
+    Configs.log("Fed backbone {} to the graph.".format(backboneIndex))
+
+def addAlignmentFileToGraph(alignedFile, graph):
     backboneAlign = sequenceutils.readFromFasta(alignedFile)        
     alignvector = backboneToAlignVector(graph, backboneAlign, graph.subsetMatrixIdx)
     lenAlignment = len(next(iter(backboneAlign.values())).seq) 
     
-    Configs.log("Feeding backbone {} to the graph..".format(backboneIndex))
-    
-    with graphLock:
+    with graph.matrixLock:
         for l in range(lenAlignment):  
             for k1 in range(len(backboneAlign)):
                 if alignvector[k1][l] != -1:
@@ -84,9 +95,7 @@ def addBackboneToGraph(graph, backboneSubsetSize, backboneIndex, graphLock):
                         if alignvector[i1][l] != -1:
                             a, b = alignvector[k1][l], alignvector[i1][l]
                             graph.matrix[a][b] = graph.matrix[a].get(b,0) + 1
-                            
-    Configs.log("Fed backbone {} to the graph.".format(backboneIndex))
-         
+             
 
 def backboneToAlignVector(graph, backboneAlign, subsetMatrixIdx):
     lenAlignment = len(next(iter(backboneAlign.values())).seq)    

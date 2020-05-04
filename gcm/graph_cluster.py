@@ -14,7 +14,7 @@ def clusterGraph(graph):
     time1 = time.time()
     
     if not os.path.exists(Configs.clusterPath):
-        external_tools.runMcl(Configs.graphPath, 4, Configs.workingDir, Configs.clusterPath)
+        external_tools.runMcl(Configs.graphPath, Configs.mclInflationFactor, Configs.workingDir, Configs.clusterPath)
     graph.readClustersFromFile(Configs.clusterPath)
     
     time2 = time.time()  

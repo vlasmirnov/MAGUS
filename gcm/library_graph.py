@@ -22,6 +22,7 @@ class LibraryGraph:
         
         self.matrixSize = 0
         self.matrix = None
+        self.matrixLock = None
         
         self.clusters = []
         

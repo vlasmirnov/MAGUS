@@ -39,13 +39,15 @@ if __name__ == '__main__':
     
     #parser.add_argument("-i", "--sequences", type=str,
     #                    help="Path to input unaligned sequences", required=False, default=None)
-
+    
     parser.add_argument("-s", "--subalignments", type=str, nargs="+",
                         help="Paths to input subalignment files", required=True)
+    
+    parser.add_argument("-b", "--backbones", type=str, nargs="+",
+                        help="Paths to input backbone alignment files", required=False, default=[])
 
     parser.add_argument("-o", "--output", type=str,
-                        help="Output alignment path",
-                        required=True)
+                        help="Output alignment path", required=True)
     
     #parser.add_argument("-t", "--guidetree", type=str,
     #                    help="guide tree for merge weights",
@@ -56,5 +58,8 @@ if __name__ == '__main__':
     
     parser.add_argument("-m", "--mafftsize", type=int,
                         help="Maximum size of MAFFT alignments", required=False, default=200)
+    
+    parser.add_argument("-f", "--inflationfactor", type=float,
+                        help="MCL inflation factor", required=False, default=4)
 
     main(parser.parse_args())

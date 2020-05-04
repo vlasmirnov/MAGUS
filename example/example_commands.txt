@@ -2,7 +2,11 @@ python3 ../gcm.py -d outputs -s subalignments -o gcm_result.txt
 
 python3 ../gcm.py -s subalignments -o gcm_result.txt
 
-python3 ../gcm.py -d outputs -s subalignments -r 10 -m 200 -o gcm_result.txt
+python3 ../gcm.py -d outputs -s subalignments -b backbones -o gcm_result.txt
+
+python3 ../gcm.py -d outputs -s subalignments -b backbones/backbone_1.txt backbones/backbone_2.txt -o gcm_result.txt
+
+python3 ../gcm.py -d outputs -s subalignments -r 10 -m 200 -f 2.5 -o gcm_result.txt
 
 python3 ../gcm.py -d outputs -s subalignments/s_1.txt subalignments/s_2.txt subalignments/s_3.txt subalignments/s_4.txt subalignments/s_5.txt subalignments/s_6.txt subalignments/s_7.txt subalignments/s_8.txt subalignments/s_9.txt subalignments/s_10.txt subalignments/s_11.txt subalignments/s_12.txt subalignments/s_13.txt subalignments/s_14.txt -o gcm_result.txt
 
