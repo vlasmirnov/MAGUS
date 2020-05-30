@@ -20,7 +20,7 @@ def buildPastaInitialTree(subsetsDir, sequencesPath):
     outputAlignPath = os.path.join(tempDir, "initial_align.txt")
     
     if os.path.exists(outputTreePath):
-        return
+        return outputTreePath, outputAlignPath
     if os.path.exists(tempDir):
         shutil.rmtree(tempDir)
     os.makedirs(tempDir)
