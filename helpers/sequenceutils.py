@@ -4,6 +4,7 @@ Created on Sep 22, 2018
 @author: Vlad
 '''
 
+import string
 
 class Sequence:
     def __init__(self, tag, seq):
@@ -57,6 +58,27 @@ def readFromPhylip(filePath, removeDashes = False):
                                 
     return sequences
 
+#reads match columns only
+def readFromStockholm(filePath):
+    sequences = {}
+    
+    with open(filePath, 'r') as stockFile:
+        for line in stockFile:
+            line = line.strip()
+            if line == "//":
+                break
+            elif line == "" or line[0] == "#":
+                pass
+            else:  
+                key, seq = line.split()
+                if key not in sequences:
+                    sequences[key] = Sequence(key, "")
+                    
+                for c in seq:
+                    if not (c == '.' or c in string.ascii_lowercase):
+                        sequences[key].seq = sequences[key].seq + c
+    
+    return sequences
 
 def writeFasta(alignment, filePath, taxa = None):
         with open(filePath, 'w') as textFile:
@@ -82,8 +104,8 @@ def writePhylip(alignment, filePath, taxa = None):
         for line in lines:
             textFile.write(line)
 
-def cleanGapColumns(alignFile, cleanFile = None):
-    align = readFromFasta(alignFile, False)
+def cleanGapColumns(filePath, cleanFile = None):
+    align = readFromFasta(filePath, False)
     values = list(align.values())
     keepCols = []
     for i in range(len(values[0].seq)):
@@ -97,15 +119,29 @@ def cleanGapColumns(alignFile, cleanFile = None):
         s.seq = ''.join(s.seq[idx] for idx in keepCols)
     
     if cleanFile is None:
-        cleanFile = alignFile
+        cleanFile = filePath
         
     writeFasta(align, cleanFile)
     
-def convertDnaToRna(srcFile, destFile = None):
-    align = readFromFasta(srcFile, False)
+def convertRnaToDna(filePath, destFile = None):
+    align = readFromFasta(filePath, False)
     for taxon in align:
         align[taxon].seq = align[taxon].seq.replace('U', 'T')
     if destFile is None:
-        destFile = srcFile
+        destFile = filePath
     writeFasta(align, destFile)
-            
+
+def inferDataType(filePath):
+    sequences = readFromFasta(filePath, removeDashes=True)
+    dataType = "dna"
+    for taxon in sequences:
+        letters = sequences[taxon].seq.upper()
+        for letter in letters:
+            if letter in ('A', 'C', 'G', 'T'):
+                continue
+            elif letter == 'U':
+                dataType = "rna"
+            else:
+                dataType = "protein"
+                return dataType
+    return dataType
