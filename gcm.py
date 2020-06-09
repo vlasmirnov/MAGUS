@@ -71,6 +71,18 @@ if __name__ == '__main__':
                         help="Data type (dna, rna, or protein). Will be inferred if not provided",
                         required=False, default=None)
     
+    parser.add_argument("--libgraphstrategy", type=str,
+                        help="Library graph strategy (mafftbackbones or hmmbackbones)",
+                        required=False, default="mafftbackbones")
+    
+    parser.add_argument("--libgraphmafftmerge", type=str,
+                        help="Use MAFFT merge to force the backbones to respect the subalignments",
+                        required=False, default="False")
+    
+    parser.add_argument("--libgraphrestrict", type=str,
+                        help="Prevent the library graph from adding edges that violate subalignments",
+                        required=False, default="False")
+    
     parser.add_argument("-r", "--mafftruns", type=int,
                         help="Number of MAFFT runs", required=False, default=10)
     

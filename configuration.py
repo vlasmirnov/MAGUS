@@ -24,6 +24,10 @@ class Configs:
     decompositionSkeletonSize = 500
     #decompositionKmhIterations = 1
     
+    libraryGraphStrategy = "mafftbackbones"
+    libraryGraphMafftMerge = False
+    libraryGraphRestrict = False
+    
     mafftRuns = 10
     mafftSize = 200
     mclInflationFactor = 4
@@ -91,6 +95,10 @@ def buildConfigs(args):
     Configs.decompositionStrategy = args.decompstrategy
     Configs.decompositionSkeletonSize = args.decompskeletonsize
     Configs.dataType = args.datatype
+    
+    Configs.libraryGraphStrategy = args.libgraphstrategy
+    Configs.libraryGraphMafftMerge = args.libgraphmafftmerge.lower() == "true"
+    Configs.libraryGraphRestrict = args.libgraphrestrict.lower() == "true"
 
     Configs.mafftRuns = args.mafftruns
     Configs.mafftSize = args.mafftsize

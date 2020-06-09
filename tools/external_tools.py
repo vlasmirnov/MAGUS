@@ -33,10 +33,10 @@ def buildMafftAlignments(inputOutputPathMap):
                 raise
     print("All MAFFT alignment workers done..")
 
-def buildMafftAlignment(inputPath, outputPath):
+def buildMafftAlignment(inputPath, outputPath, subtablePath = None):
     if not os.path.exists(outputPath):         
         print("Launching MAFFT on {}..".format(inputPath))  
-        runMafft(inputPath, None, Configs.workingDir, outputPath, Configs.numCores)                
+        runMafft(inputPath, subtablePath, Configs.workingDir, outputPath, Configs.numCores)                
     print("Completed MAFFT on {}..".format(inputPath))
 
 def runMafft(fastaPath, subtablePath, workingDir, outputPath, threads = 1):

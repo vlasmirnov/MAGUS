@@ -13,6 +13,7 @@ class LibraryGraph:
     
     def __init__(self, workingDir):
         self.workingDir = workingDir
+        self.subsetPaths = None
         self.graphPath = None
         self.clusterPath = None
         
@@ -39,7 +40,7 @@ class LibraryGraph:
             sequenceutils.cleanGapColumns(filePath, cleanFilePath)
             self.subalignments.append(sequenceutils.readFromFasta(cleanFilePath))
         '''
-        
+        self.subsetPaths = subsetPaths
         self.subalignments = [sequenceutils.readFromFasta(filePath) for filePath in subsetPaths]
         for i, subalignment in enumerate(self.subalignments):              
             for taxon in subalignment:
