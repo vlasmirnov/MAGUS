@@ -71,6 +71,7 @@ def buildBackboneAlignmentsAndMatrix(graph):
 def addMafftBackboneToGraph(graph, backboneSubsetSize, backboneIndex):
     unalignedFile = os.path.join(graph.workingDir, "backbone_{}_unalign.txt".format(backboneIndex))
     alignedFile = os.path.join(graph.workingDir, "backbone_{}_mafft.txt".format(backboneIndex))
+    extensionAlignedFile = None
     if not os.path.exists(alignedFile):
         backbone = {}
         backboneTaxa = []
@@ -99,14 +100,29 @@ def addMafftBackboneToGraph(graph, backboneSubsetSize, backboneIndex):
         else:
             external_tools.buildMafftAlignment(unalignedFile, alignedFile)
     
+        if Configs.libraryGraphHmmExtend:
+            extensionUnalignedFile = os.path.join(graph.workingDir, "backbone_{}_unalign_extension.txt".format(backboneIndex))
+            hmmDir = os.path.join(graph.workingDir, "backbone_{}_hmm".format(backboneIndex))
+            extensionAlignedFile = os.path.join(hmmDir, "hmm_align_result.txt")
+            
+            backboneExtension = {}
+            for taxon in graph.unalignment:
+                if not taxon in backbone:
+                    backboneExtension[taxon] = graph.unalignment[taxon]
+                        
+            sequenceutils.writeFasta(backboneExtension, extensionUnalignedFile) 
+            hmmutils.buildHmmOverAlignment(hmmDir, alignedFile)
+            hmmutils.hmmAlignQueries(hmmDir, extensionUnalignedFile)
     
     Configs.log("Feeding backbone {} to the graph..".format(backboneIndex))
-    addAlignmentFileToGraph(alignedFile, graph)                            
+    addAlignmentFileToGraph(alignedFile, graph, extensionAlignedFile)                            
     Configs.log("Fed backbone {} to the graph.".format(backboneIndex))
 
-def addAlignmentFileToGraph(alignedFile, graph):
+def addAlignmentFileToGraph(alignedFile, graph, extensionAlignedFile = None):
     backboneAlign = sequenceutils.readFromFasta(alignedFile)  
-    alignmentLength = len(next(iter(backboneAlign.values())).seq)         
+    alignmentLength = len(next(iter(backboneAlign.values())).seq)   
+    
+    '''
     alignvector = backboneToAlignVector(graph, backboneAlign, alignmentLength)
     
     with graph.matrixLock:
@@ -124,7 +140,27 @@ def addAlignmentFileToGraph(alignedFile, graph):
                                     continue
                                 
                             graph.matrix[a][b] = graph.matrix[a].get(b,0) + 1
-             
+    '''
+    
+    if extensionAlignedFile is not None:
+        extensionAlign = sequenceutils.readFromStockholm(extensionAlignedFile, includeInsertions = True)
+        backboneAlign.update(extensionAlign)
+    
+    alignmap = backboneToAlignMap(graph, backboneAlign, alignmentLength)
+    
+    with graph.matrixLock:
+        for l in range(alignmentLength):  
+            for a, avalue in alignmap[l].items():
+                for b, bvalue in alignmap[l].items():
+                    
+                    if Configs.libraryGraphRestrict:
+                        asub, apos = graph.matSubPosMap[a] 
+                        bsub, bpos = graph.matSubPosMap[b] 
+                        if asub == bsub and apos != bpos:
+                            continue
+                                
+                    graph.matrix[a][b] = graph.matrix[a].get(b,0) + avalue * bvalue         
+                    #graph.matrix[b][a] = graph.matrix[a][b]
 
 def backboneToAlignVector(graph, backboneAlign, alignmentLength):
     alignvector = [[-1] * alignmentLength for i in range(len(backboneAlign))]
@@ -161,6 +197,42 @@ def backboneToAlignVector(graph, backboneAlign, alignmentLength):
             
     return alignvector
 
+def backboneToAlignMap(graph, backboneAlign, alignmentLength):
+    alignmap = [{} for i in range(alignmentLength)]
+    t = 0
+    
+    for taxon in backboneAlign:
+        subsetIdx = graph.taxonSubalignmentMap[taxon]
+        subsetseq = graph.subalignments[subsetIdx][taxon].seq
+        unalignedseq = graph.unalignment[taxon].seq     
+        backboneseq = backboneAlign[taxon].seq   
+        
+        i = 0
+        posarray = [0] * len(unalignedseq)
+        for n in range(len(subsetseq)):
+            if subsetseq[n] == unalignedseq[i]:
+                posarray[i] = n 
+                i = i + 1
+                if i == len(unalignedseq):
+                    break
+        
+        i = 0
+        n = 0
+        for c in backboneseq:
+            if i == len(unalignedseq):
+                break
+            if c == unalignedseq[i]:
+                position = int(graph.subsetMatrixIdx[subsetIdx] + posarray[i])
+                alignmap[n][position] = alignmap[n].get(position, 0) + 1
+            if c.upper() == unalignedseq[i]:
+                i = i + 1
+            if c == c.upper() and c != '.':
+                n = n + 1
+                
+        t = t + 1
+            
+    return alignmap
+
 def addHmmBackboneToGraph(graph, subsetIdx):
     unalignedFile = os.path.join(graph.workingDir, "backbone_{}_unalign.txt".format(subsetIdx))
     hmmDir = os.path.join(graph.workingDir, "backbone_{}_hmm".format(subsetIdx))
@@ -186,7 +258,16 @@ def addHmmAlignmentFileToGraphLinear(alignedFile, subsetIdx, graph):
     subalignment = graph.subalignments[subsetIdx]
     hmmAlignment = sequenceutils.readFromStockholm(alignedFile, includeInsertions = True)
     alignmentLength = len(next(iter(subalignment.values())).seq) 
+    
+    '''
     alignvector = backboneToAlignVector(graph, hmmAlignment, alignmentLength)
+    
+    
+    backboneAlign = {}
+    taxa = list(hmmAlignment.keys())
+    random.shuffle(taxa)
+    for taxon in taxa[:300]:
+        backboneAlign[taxon] = hmmAlignment[taxon]
         
     with graph.matrixLock:
         for l in range(alignmentLength):  
@@ -197,6 +278,46 @@ def addHmmAlignmentFileToGraphLinear(alignedFile, subsetIdx, graph):
                     a = alignvector[k1][l]                        
                     graph.matrix[a][b] = graph.matrix[a].get(b,0) + 1    
                     graph.matrix[b][a] = graph.matrix[b].get(a,0) + 1    
-                        
-   
-  
+        
+                                        
+        for l in range(alignmentLength):  
+            for k1 in range(len(backboneAlign)):
+                if alignvector[k1][l] != -1:
+                    for i1 in range(len(backboneAlign)):
+                        if alignvector[i1][l] != -1:                            
+                            a, b = alignvector[k1][l], alignvector[i1][l]
+                            
+                            if Configs.libraryGraphRestrict:
+                                asub, apos = graph.matSubPosMap[a] 
+                                bsub, bpos = graph.matSubPosMap[b] 
+                                if asub == bsub and apos != bpos:
+                                    continue
+                                
+                            graph.matrix[a][b] = graph.matrix[a].get(b,0) + 1
+    '''
+    
+    hmmAlignment.update(subalignment)
+    alignmap = backboneToAlignMap(graph, hmmAlignment, alignmentLength)
+    
+    with graph.matrixLock:
+        '''
+        for l in range(alignmentLength):  
+            b = int(graph.subsetMatrixIdx[subsetIdx] + l)
+            graph.matrix[b][b] = graph.matrix[b].get(b,0) + (len(subalignment)) ** 2 
+            for a, avalue in alignmap[l].items():
+                graph.matrix[a][b] = graph.matrix[a].get(b,0) + avalue * len(subalignment)       
+                graph.matrix[b][a] = graph.matrix[a][b]
+        '''
+        for l in range(alignmentLength):  
+            for a, avalue in alignmap[l].items():
+                for b, bvalue in alignmap[l].items():
+                    
+                    if Configs.libraryGraphRestrict:
+                        asub, apos = graph.matSubPosMap[a] 
+                        bsub, bpos = graph.matSubPosMap[b] 
+                        if asub == bsub and apos != bpos:
+                            continue
+                                
+                    graph.matrix[a][b] = graph.matrix[a].get(b,0) + avalue * bvalue         
+                    #graph.matrix[b][a] = graph.matrix[a][b]
+        

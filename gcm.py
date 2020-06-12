@@ -83,6 +83,10 @@ if __name__ == '__main__':
                         help="Prevent the library graph from adding edges that violate subalignments",
                         required=False, default="False")
     
+    parser.add_argument("--libgraphhmmextend", type=str,
+                        help="Extend the library graph MAFFT backbones with hmmer",
+                        required=False, default="False")
+    
     parser.add_argument("-r", "--mafftruns", type=int,
                         help="Number of MAFFT runs", required=False, default=10)
     

@@ -27,6 +27,7 @@ class Configs:
     libraryGraphStrategy = "mafftbackbones"
     libraryGraphMafftMerge = False
     libraryGraphRestrict = False
+    libraryGraphHmmExtend = False
     
     mafftRuns = 10
     mafftSize = 200
@@ -99,6 +100,7 @@ def buildConfigs(args):
     Configs.libraryGraphStrategy = args.libgraphstrategy
     Configs.libraryGraphMafftMerge = args.libgraphmafftmerge.lower() == "true"
     Configs.libraryGraphRestrict = args.libgraphrestrict.lower() == "true"
+    Configs.libraryGraphHmmExtend = args.libgraphhmmextend.lower() == "true"
 
     Configs.mafftRuns = args.mafftruns
     Configs.mafftSize = args.mafftsize
