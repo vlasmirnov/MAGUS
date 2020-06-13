@@ -21,7 +21,7 @@ class Configs:
     decompositionMaxNumSubsets = 25
     decompositionMaxSubsetSize = 50
     decompositionStrategy = "pastastyle"
-    decompositionSkeletonSize = 500
+    decompositionSkeletonSize = 300
     #decompositionKmhIterations = 1
     
     libraryGraphStrategy = "mafftbackbones"

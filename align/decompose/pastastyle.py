@@ -32,6 +32,7 @@ def buildPastaInitialTree(subsetsDir, sequencesPath):
     skeletonAlignPath = os.path.join(tempDir, "skeleton_align.txt") 
     queriesPath = os.path.join(tempDir, "queries.txt") 
     hmmDir = os.path.join(tempDir, "skeleton_hmm")
+    hmmAlignPath = os.path.join(tempDir, "queries_align.txt")
     
     sequences = sequenceutils.readFromFasta(sequencesPath, True)
     skeletonTaxa, remainingTaxa = decomposer.chooseSkeletonTaxa(sequences, Configs.decompositionSkeletonSize)
@@ -40,9 +41,9 @@ def buildPastaInitialTree(subsetsDir, sequencesPath):
     
     external_tools.runMafft(skeletonPath, None, tempDir, skeletonAlignPath, Configs.numCores)
     hmmutils.buildHmmOverAlignment(hmmDir, skeletonAlignPath)
-    hmmResultPath = hmmutils.hmmAlignQueries(hmmDir, queriesPath)
-    initialAlign = sequenceutils.readFromStockholm(hmmResultPath)
-    skeletonAlign = sequenceutils.readFromFasta(skeletonAlignPath)    
+    hmmutils.hmmAlignQueries(hmmDir, queriesPath, hmmAlignPath)
+    initialAlign = sequenceutils.readFromStockholm(hmmAlignPath)
+    skeletonAlign = sequenceutils.readFromFasta(skeletonAlignPath)
     initialAlign.update(skeletonAlign)
   
     sequenceutils.writeFasta(initialAlign, outputAlignPath)    

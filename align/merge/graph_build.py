@@ -9,7 +9,6 @@ import time
 import random
 import concurrent.futures
 import threading
-import string
 
 from helpers import sequenceutils, hmmutils
 from configuration import Configs
@@ -47,17 +46,24 @@ def buildBackboneAlignmentsAndMatrix(graph):
     
     with concurrent.futures.ThreadPoolExecutor(max_workers = Configs.numCores) as executor:
         
-        if Configs.libraryGraphStrategy == "mafftbackbones":
+        if Configs.libraryGraphStrategy == "mafft":
             Configs.log("Launching {} MAFFT backbones with {} workers..".format(Configs.mafftRuns, Configs.numCores)) 
             minSubalignmentLength = min([len(subset) for subset in graph.subalignments])
             backboneSubsetSize = max(1, min(minSubalignmentLength, int(Configs.mafftSize/numSubsets)))
             jobs = {executor.submit(addMafftBackboneToGraph, graph, backboneSubsetSize, n+1) : n+1
                        for n in range(Configs.mafftRuns)}
             
-        elif Configs.libraryGraphStrategy == "hmmbackbones":
+        elif Configs.libraryGraphStrategy == "hmm":
             Configs.log("Launching {} HMM backbones with {} workers..".format(numSubsets, Configs.numCores)) 
             jobs = {executor.submit(addHmmBackboneToGraph, graph, n+1) : n+1
                        for n in range(numSubsets)}
+        
+        elif Configs.libraryGraphStrategy == "initial":
+            Configs.log("Using the initial decomposition alignment as the single backbone..")
+            subsetsDir = os.path.dirname(graph.subsetPaths[0])
+            mafftAlignPath = os.path.join(subsetsDir, "initial_tree", "skeleton_align.txt")
+            hmmAlignPath = os.path.join(subsetsDir, "initial_tree", "queries_align.txt")
+            jobs = {executor.submit(addAlignmentFileToGraph, mafftAlignPath, graph, hmmAlignPath) : 1}
         
         for job in concurrent.futures.as_completed(jobs):
             try:
@@ -101,9 +107,9 @@ def addMafftBackboneToGraph(graph, backboneSubsetSize, backboneIndex):
             external_tools.buildMafftAlignment(unalignedFile, alignedFile)
     
         if Configs.libraryGraphHmmExtend:
-            extensionUnalignedFile = os.path.join(graph.workingDir, "backbone_{}_unalign_extension.txt".format(backboneIndex))
+            extensionUnalignedFile = os.path.join(graph.workingDir, "backbone_{}_extension_unalign.txt".format(backboneIndex))
             hmmDir = os.path.join(graph.workingDir, "backbone_{}_hmm".format(backboneIndex))
-            extensionAlignedFile = os.path.join(hmmDir, "hmm_align_result.txt")
+            extensionAlignedFile = os.path.join(graph.workingDir, "backbone_{}_extension_align.txt".format(backboneIndex))
             
             backboneExtension = {}
             for taxon in graph.unalignment:
@@ -112,7 +118,7 @@ def addMafftBackboneToGraph(graph, backboneSubsetSize, backboneIndex):
                         
             sequenceutils.writeFasta(backboneExtension, extensionUnalignedFile) 
             hmmutils.buildHmmOverAlignment(hmmDir, alignedFile)
-            hmmutils.hmmAlignQueries(hmmDir, extensionUnalignedFile)
+            hmmutils.hmmAlignQueries(hmmDir, extensionUnalignedFile, extensionAlignedFile)
     
     Configs.log("Feeding backbone {} to the graph..".format(backboneIndex))
     addAlignmentFileToGraph(alignedFile, graph, extensionAlignedFile)                            
@@ -121,26 +127,6 @@ def addMafftBackboneToGraph(graph, backboneSubsetSize, backboneIndex):
 def addAlignmentFileToGraph(alignedFile, graph, extensionAlignedFile = None):
     backboneAlign = sequenceutils.readFromFasta(alignedFile)  
     alignmentLength = len(next(iter(backboneAlign.values())).seq)   
-    
-    '''
-    alignvector = backboneToAlignVector(graph, backboneAlign, alignmentLength)
-    
-    with graph.matrixLock:
-        for l in range(alignmentLength):  
-            for k1 in range(len(backboneAlign)):
-                if alignvector[k1][l] != -1:
-                    for i1 in range(len(backboneAlign)):
-                        if alignvector[i1][l] != -1:                            
-                            a, b = alignvector[k1][l], alignvector[i1][l]
-                            
-                            if Configs.libraryGraphRestrict:
-                                asub, apos = graph.matSubPosMap[a] 
-                                bsub, bpos = graph.matSubPosMap[b] 
-                                if asub == bsub and apos != bpos:
-                                    continue
-                                
-                            graph.matrix[a][b] = graph.matrix[a].get(b,0) + 1
-    '''
     
     if extensionAlignedFile is not None:
         extensionAlign = sequenceutils.readFromStockholm(extensionAlignedFile, includeInsertions = True)
@@ -160,42 +146,7 @@ def addAlignmentFileToGraph(alignedFile, graph, extensionAlignedFile = None):
                             continue
                                 
                     graph.matrix[a][b] = graph.matrix[a].get(b,0) + avalue * bvalue         
-                    #graph.matrix[b][a] = graph.matrix[a][b]
 
-def backboneToAlignVector(graph, backboneAlign, alignmentLength):
-    alignvector = [[-1] * alignmentLength for i in range(len(backboneAlign))]
-    t = 0
-    
-    for taxon in backboneAlign:
-        subsetIdx = graph.taxonSubalignmentMap[taxon]
-        subsetseq = graph.subalignments[subsetIdx][taxon].seq
-        unalignedseq = graph.unalignment[taxon].seq     
-        backboneseq = backboneAlign[taxon].seq   
-        
-        i = 0
-        posarray = [0] * len(unalignedseq)
-        for n in range(len(subsetseq)):
-            if subsetseq[n] == unalignedseq[i]:
-                posarray[i] = n 
-                i = i + 1
-                if i == len(unalignedseq):
-                    break
-        
-        i = 0
-        n = 0
-        for c in backboneseq:
-            if i == len(unalignedseq):
-                break
-            if c == unalignedseq[i]:
-                alignvector[t][n] = int(graph.subsetMatrixIdx[subsetIdx] + posarray[i])       
-            if c.upper() == unalignedseq[i]:
-                i = i + 1
-            if c == c.upper() and c != '.':
-                n = n + 1
-                
-        t = t + 1
-            
-    return alignvector
 
 def backboneToAlignMap(graph, backboneAlign, alignmentLength):
     alignmap = [{} for i in range(alignmentLength)]
@@ -234,9 +185,10 @@ def backboneToAlignMap(graph, backboneAlign, alignmentLength):
     return alignmap
 
 def addHmmBackboneToGraph(graph, subsetIdx):
+    subalignmentFile = graph.subsetPaths[subsetIdx-1]
     unalignedFile = os.path.join(graph.workingDir, "backbone_{}_unalign.txt".format(subsetIdx))
     hmmDir = os.path.join(graph.workingDir, "backbone_{}_hmm".format(subsetIdx))
-    hmmAlignmentPath = os.path.join(hmmDir, "hmm_align_result.txt")
+    hmmAlignmentPath = os.path.join(graph.workingDir, "backbone_{}_align.txt".format(subsetIdx))
     
     if not os.path.exists(hmmAlignmentPath):
         backbone = {}
@@ -247,77 +199,9 @@ def addHmmBackboneToGraph(graph, subsetIdx):
                 backbone[taxon] = graph.unalignment[taxon]
                     
         sequenceutils.writeFasta(backbone, unalignedFile) 
-        hmmutils.buildHmmOverAlignment(hmmDir, graph.subsetPaths[subsetIdx-1])
-        hmmutils.hmmAlignQueries(hmmDir, unalignedFile)
+        hmmutils.buildHmmOverAlignment(hmmDir, subalignmentFile)
+        hmmutils.hmmAlignQueries(hmmDir, unalignedFile, hmmAlignmentPath)
     
     Configs.log("Feeding backbone {} to the graph..".format(subsetIdx))
-    addHmmAlignmentFileToGraphLinear(hmmAlignmentPath, subsetIdx-1, graph)                            
+    addAlignmentFileToGraph(subalignmentFile, graph, hmmAlignmentPath)                                 
     Configs.log("Fed backbone {} to the graph.".format(subsetIdx))
-
-def addHmmAlignmentFileToGraphLinear(alignedFile, subsetIdx, graph):
-    subalignment = graph.subalignments[subsetIdx]
-    hmmAlignment = sequenceutils.readFromStockholm(alignedFile, includeInsertions = True)
-    alignmentLength = len(next(iter(subalignment.values())).seq) 
-    
-    '''
-    alignvector = backboneToAlignVector(graph, hmmAlignment, alignmentLength)
-    
-    
-    backboneAlign = {}
-    taxa = list(hmmAlignment.keys())
-    random.shuffle(taxa)
-    for taxon in taxa[:300]:
-        backboneAlign[taxon] = hmmAlignment[taxon]
-        
-    with graph.matrixLock:
-        for l in range(alignmentLength):  
-            b = int(graph.subsetMatrixIdx[subsetIdx] + l)
-            graph.matrix[b][b] = graph.matrix[b].get(b,0) + int(2*len(subalignment))  
-            for k1 in range(len(hmmAlignment)):
-                if alignvector[k1][l] != -1:
-                    a = alignvector[k1][l]                        
-                    graph.matrix[a][b] = graph.matrix[a].get(b,0) + 1    
-                    graph.matrix[b][a] = graph.matrix[b].get(a,0) + 1    
-        
-                                        
-        for l in range(alignmentLength):  
-            for k1 in range(len(backboneAlign)):
-                if alignvector[k1][l] != -1:
-                    for i1 in range(len(backboneAlign)):
-                        if alignvector[i1][l] != -1:                            
-                            a, b = alignvector[k1][l], alignvector[i1][l]
-                            
-                            if Configs.libraryGraphRestrict:
-                                asub, apos = graph.matSubPosMap[a] 
-                                bsub, bpos = graph.matSubPosMap[b] 
-                                if asub == bsub and apos != bpos:
-                                    continue
-                                
-                            graph.matrix[a][b] = graph.matrix[a].get(b,0) + 1
-    '''
-    
-    hmmAlignment.update(subalignment)
-    alignmap = backboneToAlignMap(graph, hmmAlignment, alignmentLength)
-    
-    with graph.matrixLock:
-        '''
-        for l in range(alignmentLength):  
-            b = int(graph.subsetMatrixIdx[subsetIdx] + l)
-            graph.matrix[b][b] = graph.matrix[b].get(b,0) + (len(subalignment)) ** 2 
-            for a, avalue in alignmap[l].items():
-                graph.matrix[a][b] = graph.matrix[a].get(b,0) + avalue * len(subalignment)       
-                graph.matrix[b][a] = graph.matrix[a][b]
-        '''
-        for l in range(alignmentLength):  
-            for a, avalue in alignmap[l].items():
-                for b, bvalue in alignmap[l].items():
-                    
-                    if Configs.libraryGraphRestrict:
-                        asub, apos = graph.matSubPosMap[a] 
-                        bsub, bpos = graph.matSubPosMap[b] 
-                        if asub == bsub and apos != bpos:
-                            continue
-                                
-                    graph.matrix[a][b] = graph.matrix[a].get(b,0) + avalue * bvalue         
-                    #graph.matrix[b][a] = graph.matrix[a][b]
-        

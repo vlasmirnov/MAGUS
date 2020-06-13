@@ -65,15 +65,15 @@ if __name__ == '__main__':
     
     parser.add_argument("--decompskeletonsize", type=int,
                         help="Number of skeleton sequences for the initial decomposition strategy",
-                        required=False, default=500)
+                        required=False, default=300)
     
     parser.add_argument("--datatype", type=str,
                         help="Data type (dna, rna, or protein). Will be inferred if not provided",
                         required=False, default=None)
     
     parser.add_argument("--libgraphstrategy", type=str,
-                        help="Library graph strategy (mafftbackbones or hmmbackbones)",
-                        required=False, default="mafftbackbones")
+                        help="Library graph strategy (mafft or initial)",
+                        required=False, default="mafft")
     
     parser.add_argument("--libgraphmafftmerge", type=str,
                         help="Use MAFFT merge to force the backbones to respect the subalignments",
