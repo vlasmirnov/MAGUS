@@ -5,12 +5,10 @@ Created on May 28, 2020
 '''
 
 import os
-import shutil
 import random
 
 from align.decompose import pastastyle, kmh
-from helpers import sequenceutils, treeutils
-from tools import external_tools
+from helpers import treeutils
 from configuration import Configs
 
 

@@ -8,11 +8,12 @@ Created on Apr 14, 2020
 from helpers import sequenceutils
 from configuration import Configs
 
-class LibraryGraph:
+class AlignmentGraph:
     
     
     def __init__(self, workingDir):
         self.workingDir = workingDir
+        self.subsetPaths = None
         self.graphPath = None
         self.clusterPath = None
         
@@ -26,6 +27,7 @@ class LibraryGraph:
         self.matrixSize = 0
         self.matrix = None
         self.matrixLock = None
+        self.nodeEdges = None
         
         self.clusters = []
         
@@ -39,7 +41,7 @@ class LibraryGraph:
             sequenceutils.cleanGapColumns(filePath, cleanFilePath)
             self.subalignments.append(sequenceutils.readFromFasta(cleanFilePath))
         '''
-        
+        self.subsetPaths = subsetPaths
         self.subalignments = [sequenceutils.readFromFasta(filePath) for filePath in subsetPaths]
         for i, subalignment in enumerate(self.subalignments):              
             for taxon in subalignment:
@@ -83,6 +85,45 @@ class LibraryGraph:
                 if len(tokens) > 1:
                     self.clusters.append(tokens) 
         print("Found {} clusters..".format(len(self.clusters)))
+    
+    def buildNodeEdgeDataStructure(self):
+        Configs.log("Preparing node edge data structure..")
+        k = len(self.subalignments)
+        self.nodeEdges = {}
+        
+        for a in range(self.matrixSize):
+            asub, apos = self.matSubPosMap[a]
+            self.nodeEdges[a] = [[] for i in range(k)]
+            for b, value in self.matrix[a].items():
+                bsub, bpos = self.matSubPosMap[b] 
+                if asub == bsub:
+                    continue
+                self.nodeEdges[a][bsub].append((b, value))
+            for i in range(k):
+                self.nodeEdges[a][i].sort(key = lambda pair: pair[0])
+        Configs.log("Prepared node edge data structure..")
+    
+    def buildNodeEdgeDataStructureFromClusters(self):
+        Configs.log("Preparing node edge data structure..")
+        k = len(self.subalignments)
+        self.nodeEdges = {}
+        
+        Configs.log("Using {} pre-existing clusters to simplify alignment graph..".format(len(self.clusters)))
+        for a in range(self.matrixSize):
+            self.nodeEdges[a] = [[] for i in range(k)]
+        
+        for cluster in self.clusters:
+            for a in cluster:
+                asub, apos = self.matSubPosMap[a]
+                for b in cluster:
+                    bsub, bpos = self.matSubPosMap[b]
+                    if asub == bsub or b not in self.matrix[a]:
+                        continue
+                    value = self.matrix[a][b]
+                    self.nodeEdges[a][bsub].append((b, value))
+                for i in range(k):
+                    self.nodeEdges[a][i].sort(key = lambda pair: pair[0])
+        Configs.log("Prepared node edge data structure..")
         
     def clustersToAlignment(self, filePath):
         finalAlignment = {}
@@ -133,3 +174,32 @@ class LibraryGraph:
                                 
         sequenceutils.writeFasta(finalAlignment, filePath)  
         Configs.log("Wrote final output alignment to {}".format(filePath))
+
+    def cutString(self, cut):
+        stringCut = list(cut)
+        for i, value in enumerate(stringCut):
+            stringCut[i] = value - self.subsetMatrixIdx[i]
+        return stringCut
+
+    def computeClusteringCost(self, clusters):
+        cutCost = 0
+        nodeClusters = {}
+        
+        for n, cluster in enumerate(clusters):
+            for a in cluster:
+                nodeClusters[a] = n
+                
+        clusterCounter = len(clusters)
+        for a in range(self.matrixSize):
+            if a not in nodeClusters:
+                nodeClusters[a] = clusterCounter
+                clusterCounter = clusterCounter + 1
+                 
+        for a in range(self.matrixSize):
+            asub, apos = self.matSubPosMap[a]
+            for b, value in self.matrix[a].items():
+                bsub, bpos = self.matSubPosMap[b] 
+                if asub != bsub and nodeClusters[a] != nodeClusters[b]:
+                    cutCost = cutCost + value
+    
+        return int(cutCost/2) 

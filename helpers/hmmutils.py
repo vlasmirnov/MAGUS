@@ -58,11 +58,11 @@ def buildHmmOverAlignment(hmmDir, alignmentPath):
     external_tools.runHmmBuild(alignmentPath, hmmDir, hmmPath)
     return hmmPath
 
-def hmmAlignQueries(hmmDir, queriesPath):
+def hmmAlignQueries(hmmDir, queriesPath, outputAlignmentPath):
     hmmPath = os.path.join(hmmDir, "hmm_model.txt")
-    alignResultPath = os.path.join(hmmDir, "hmm_align_result.txt")
-    external_tools.runHmmAlign(hmmPath, queriesPath, hmmDir, alignResultPath)
-    return alignResultPath
+    #alignResultPath = os.path.join(hmmDir, "hmm_align_result.txt")
+    external_tools.runHmmAlign(hmmPath, queriesPath, hmmDir, outputAlignmentPath)
+    return outputAlignmentPath
 
 #from PASTA repo
 def readSearchFile(searchFilePath):

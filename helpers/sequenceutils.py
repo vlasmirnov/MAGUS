@@ -59,7 +59,7 @@ def readFromPhylip(filePath, removeDashes = False):
     return sequences
 
 #reads match columns only
-def readFromStockholm(filePath):
+def readFromStockholm(filePath, includeInsertions = False):
     sequences = {}
     
     with open(filePath, 'r') as stockFile:
@@ -75,7 +75,8 @@ def readFromStockholm(filePath):
                     sequences[key] = Sequence(key, "")
                     
                 for c in seq:
-                    if not (c == '.' or c in string.ascii_lowercase):
+                    #if includeInsertions or not (c == '.' or c in string.ascii_lowercase):
+                    if includeInsertions or (c == c.upper() and c != '.'):
                         sequences[key].seq = sequences[key].seq + c
     
     return sequences

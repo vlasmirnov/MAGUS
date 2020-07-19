@@ -6,10 +6,12 @@ Created on May 14, 2020
 
 import os
 
-from align.merge.library_graph import LibraryGraph
+from align.merge.alignment_graph import AlignmentGraph
 from align.merge.graph_build import buildGraph
 from align.merge.graph_cluster import clusterGraph
-from align.merge.graph_order import orderGraph
+from align.merge.graph_trace.tracer import findTrace
+from configuration import Configs
+from tools import external_tools
 
 def mergeSubalignments(workingDir, subalignmentPaths, outputPath):
     baseName = os.path.splitext(os.path.basename(outputPath))[0]
@@ -17,9 +19,11 @@ def mergeSubalignments(workingDir, subalignmentPaths, outputPath):
     if not os.path.exists(mergingDir):
         os.makedirs(mergingDir)
     
-    graph = LibraryGraph(mergingDir)
+    graph = AlignmentGraph(mergingDir)
     graph.loadSubalignments(subalignmentPaths)    
     buildGraph(graph)
     clusterGraph(graph)
-    orderGraph(graph)
+    findTrace(graph)
     graph.clustersToAlignment(outputPath)
+    
+    

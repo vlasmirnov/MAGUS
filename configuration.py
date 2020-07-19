@@ -21,8 +21,14 @@ class Configs:
     decompositionMaxNumSubsets = 25
     decompositionMaxSubsetSize = 50
     decompositionStrategy = "pastastyle"
-    decompositionSkeletonSize = 500
+    decompositionSkeletonSize = 300
     #decompositionKmhIterations = 1
+    
+    graphBuildMethod = "mafft"
+    graphBuildHmmExtend = False
+    graphBuildRestrict = False
+    graphClusterMethod = "mcl" 
+    graphTraceMethod = "minclusters"
     
     mafftRuns = 10
     mafftSize = 200
@@ -91,6 +97,12 @@ def buildConfigs(args):
     Configs.decompositionStrategy = args.decompstrategy
     Configs.decompositionSkeletonSize = args.decompskeletonsize
     Configs.dataType = args.datatype
+    
+    Configs.graphBuildMethod = args.graphbuildmethod
+    Configs.graphBuildHmmExtend = args.graphbuildhmmextend.lower() == "true"
+    Configs.graphBuildRestrict = args.graphbuildrestrict.lower() == "true"
+    Configs.graphClusterMethod = args.graphclustermethod
+    Configs.graphTraceMethod = args.graphtracemethod
 
     Configs.mafftRuns = args.mafftruns
     Configs.mafftSize = args.mafftsize

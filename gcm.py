@@ -65,11 +65,31 @@ if __name__ == '__main__':
     
     parser.add_argument("--decompskeletonsize", type=int,
                         help="Number of skeleton sequences for the initial decomposition strategy",
-                        required=False, default=500)
+                        required=False, default=300)
     
     parser.add_argument("--datatype", type=str,
                         help="Data type (dna, rna, or protein). Will be inferred if not provided",
                         required=False, default=None)
+    
+    parser.add_argument("--graphbuildmethod", type=str,
+                        help="Method for building the alignment graph (mafft, mafftmerge, or initial)",
+                        required=False, default="mafft")
+    
+    parser.add_argument("--graphbuildrestrict", type=str,
+                        help="Prevent the alignment graph from adding edges that violate subalignments (true or false)",
+                        required=False, default="False")
+    
+    parser.add_argument("--graphbuildhmmextend", type=str,
+                        help="Extend the alignment graph MAFFT backbones with hmmer (true or false)",
+                        required=False, default="False")
+    
+    parser.add_argument("--graphclustermethod", type=str,
+                        help="Method for initial clustering of the alignment graph (mcl or none)",
+                        required=False, default="mcl")
+    
+    parser.add_argument("--graphtracemethod", type=str,
+                        help="Method for finding a trace from the alignment graph (minclusters, fm, mwtgreedy, or mwtsearch)",
+                        required=False, default="minclusters")
     
     parser.add_argument("-r", "--mafftruns", type=int,
                         help="Number of MAFFT runs", required=False, default=10)
