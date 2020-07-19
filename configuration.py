@@ -24,10 +24,11 @@ class Configs:
     decompositionSkeletonSize = 300
     #decompositionKmhIterations = 1
     
-    libraryGraphStrategy = "mafftbackbones"
-    libraryGraphMafftMerge = False
-    libraryGraphRestrict = False
-    libraryGraphHmmExtend = False
+    graphBuildMethod = "mafft"
+    graphBuildHmmExtend = False
+    graphBuildRestrict = False
+    graphClusterMethod = "mcl" 
+    graphTraceMethod = "minclusters"
     
     mafftRuns = 10
     mafftSize = 200
@@ -97,10 +98,11 @@ def buildConfigs(args):
     Configs.decompositionSkeletonSize = args.decompskeletonsize
     Configs.dataType = args.datatype
     
-    Configs.libraryGraphStrategy = args.libgraphstrategy
-    Configs.libraryGraphMafftMerge = args.libgraphmafftmerge.lower() == "true"
-    Configs.libraryGraphRestrict = args.libgraphrestrict.lower() == "true"
-    Configs.libraryGraphHmmExtend = args.libgraphhmmextend.lower() == "true"
+    Configs.graphBuildMethod = args.graphbuildmethod
+    Configs.graphBuildHmmExtend = args.graphbuildhmmextend.lower() == "true"
+    Configs.graphBuildRestrict = args.graphbuildrestrict.lower() == "true"
+    Configs.graphClusterMethod = args.graphclustermethod
+    Configs.graphTraceMethod = args.graphtracemethod
 
     Configs.mafftRuns = args.mafftruns
     Configs.mafftSize = args.mafftsize

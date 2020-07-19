@@ -13,20 +13,26 @@ from tools import external_tools
 def clusterGraph(graph):
     time1 = time.time()
     
+    if Configs.graphClusterMethod == "mcl" or Configs.graphTraceMethod == "minclusters":
+        Configs.log("Running MCL alignment graph clustering..")
+        runMclClustering(graph)
+        purgeDuplicateClusters(graph)
+        purgeClusterViolations(graph)
+    else:
+        Configs.log("No alignment graph clustering..")
+    
+    time2 = time.time()  
+    Configs.log("Clustered the graph in {} sec..".format(time2-time1))
+
+def runMclClustering(graph):  
     graph.clusterPath = os.path.join(graph.workingDir, "clusters.txt")
     
     if not os.path.exists(graph.clusterPath):
         external_tools.runMcl(graph.graphPath, Configs.mclInflationFactor, graph.workingDir, graph.clusterPath)
+    else:
+        Configs.log("Found existing cluster file {}".format(graph.clusterPath))
     graph.readClustersFromFile(graph.clusterPath)
     
-    time2 = time.time()  
-    Configs.log("Clustered the graph in {} sec..".format(time2-time1))
-    
-    purgeDuplicateClusters(graph)
-    purgeClusterRedundancies(graph)
-        
-    time3 = time.time()  
-    Configs.log("Purged the clusters in {} sec..".format(time3-time2))
     
 def purgeDuplicateClusters(graph):
     uniqueClusters = set()
@@ -40,7 +46,7 @@ def purgeDuplicateClusters(graph):
     graph.clusters = newclusters
     Configs.log("Purged duplicate clusters. Found {} unique clusters..".format(len(graph.clusters)))
 
-def purgeClusterRedundancies(graph):
+def purgeClusterViolations(graph):
     redundantCols = {}
     redundantRows = {}
     elementScores = {}
@@ -59,7 +65,7 @@ def purgeClusterRedundancies(graph):
     
     problemCols = [(a,b) for a,b in redundantCols if len(redundantCols[a,b]) > 1]
     problemRows = [a for a in redundantRows if len(redundantRows[a]) > 1]
-    Configs.log("Found {} row redundancies and {} column redundancies..".format(len(problemRows), len(problemCols)))
+    Configs.log("Found {} row violations and {} column violations..".format(len(problemRows), len(problemCols)))
     
     sortedScores = list(elementScores.keys())
     sortedScores.sort(key = lambda x : elementScores[x])
@@ -73,7 +79,7 @@ def purgeClusterRedundancies(graph):
     
     problemCols = [(a,b) for a,b in redundantCols if len(redundantCols[a,b]) > 1]
     problemRows = [a for a in redundantRows if len(redundantRows[a]) > 1]
-    Configs.log("Finished redundancy sweep. Now {} row redundancies and {} column redundancies..".format(len(problemRows), len(problemCols)))
+    Configs.log("Finished violations sweep. Now {} row violations and {} column violations..".format(len(problemRows), len(problemCols)))
     
     graph.clusters = [cluster for cluster in graph.clusters if len(cluster) > 1]
-    Configs.log("Purged row/column redundancies. Found {} proper clusters..".format(len(graph.clusters)))
+    Configs.log("Purged cluster violations. Found {} clean clusters..".format(len(graph.clusters)))

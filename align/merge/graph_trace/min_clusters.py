@@ -5,20 +5,13 @@ Created on Apr 18, 2020
 '''
 
 import heapq
-import time 
 
 from configuration import Configs
 
-def orderGraph(graph):
-    time1 = time.time()
-        
-    orderingSearch(graph)
-    
-    time2 = time.time()
-    Configs.log("Ordered the clusters in {} sec..".format(time2-time1))
-
 #todo refactoring
-def orderingSearch(graph):
+def minClustersSearch(graph):
+    Configs.log("Finding graph trace with minimum clusters heuristic search..")
+    
     subsetClusters = {}
     clusterPositions = {}
     queueIdxs = {}
@@ -180,7 +173,7 @@ def orderingSearch(graph):
                 foundGood = True
                 break
                     
-    graph.clusters = orderedClusters
+    return orderedClusters
 
 def developState(state, graph, aggression, greedy, crossed, subsetClusters, clusterPositions):
     heuristic, numOrdered, numLeft, pairsLeft, counter, queueIdxs, clusterBreaks, maximalCut, newClusterBreaks, safeFrontier  = state

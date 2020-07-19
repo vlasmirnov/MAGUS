@@ -26,7 +26,7 @@ def buildGraph(graph):
         graph.writeGraphToFile(graph.graphPath)
         
     time2 = time.time()
-    Configs.log("Compiled backbone alignments and graph in {} sec..".format(time2-time1))
+    Configs.log("Built the alignment graph in {} sec..".format(time2-time1))
         
 def buildMatrix(graph):
     graph.matrix = [{} for i in range(graph.matrixSize)]
@@ -46,19 +46,19 @@ def buildBackboneAlignmentsAndMatrix(graph):
     
     with concurrent.futures.ThreadPoolExecutor(max_workers = Configs.numCores) as executor:
         
-        if Configs.libraryGraphStrategy == "mafft":
+        if Configs.graphBuildMethod in ["mafft", "mafftmerge"]:
             Configs.log("Launching {} MAFFT backbones with {} workers..".format(Configs.mafftRuns, Configs.numCores)) 
             minSubalignmentLength = min([len(subset) for subset in graph.subalignments])
             backboneSubsetSize = max(1, min(minSubalignmentLength, int(Configs.mafftSize/numSubsets)))
             jobs = {executor.submit(addMafftBackboneToGraph, graph, backboneSubsetSize, n+1) : n+1
                        for n in range(Configs.mafftRuns)}
             
-        elif Configs.libraryGraphStrategy == "hmm":
+        elif Configs.graphBuildMethod == "hmm":
             Configs.log("Launching {} HMM backbones with {} workers..".format(numSubsets, Configs.numCores)) 
             jobs = {executor.submit(addHmmBackboneToGraph, graph, n+1) : n+1
                        for n in range(numSubsets)}
         
-        elif Configs.libraryGraphStrategy == "initial":
+        elif Configs.graphBuildMethod == "initial":
             Configs.log("Using the initial decomposition alignment as the single backbone..")
             subsetsDir = os.path.dirname(graph.subsetPaths[0])
             mafftAlignPath = os.path.join(subsetsDir, "initial_tree", "skeleton_align.txt")
@@ -91,7 +91,7 @@ def addMafftBackboneToGraph(graph, backboneSubsetSize, backboneIndex):
 
         sequenceutils.writeFasta(backbone, unalignedFile, backboneTaxa) 
         
-        if Configs.libraryGraphMafftMerge:
+        if Configs.graphBuildMethod == "mafftmerge":
             subtableFile = os.path.join(graph.workingDir, "backbone_{}_subtable.txt".format(backboneIndex))
             with open(subtableFile, 'w') as textFile:
                 curSubset = None  
@@ -106,7 +106,7 @@ def addMafftBackboneToGraph(graph, backboneSubsetSize, backboneIndex):
         else:
             external_tools.buildMafftAlignment(unalignedFile, alignedFile)
     
-        if Configs.libraryGraphHmmExtend:
+        if Configs.graphBuildHmmExtend:
             extensionUnalignedFile = os.path.join(graph.workingDir, "backbone_{}_extension_unalign.txt".format(backboneIndex))
             hmmDir = os.path.join(graph.workingDir, "backbone_{}_hmm".format(backboneIndex))
             extensionAlignedFile = os.path.join(graph.workingDir, "backbone_{}_extension_align.txt".format(backboneIndex))
@@ -139,7 +139,7 @@ def addAlignmentFileToGraph(alignedFile, graph, extensionAlignedFile = None):
             for a, avalue in alignmap[l].items():
                 for b, bvalue in alignmap[l].items():
                     
-                    if Configs.libraryGraphRestrict:
+                    if Configs.graphBuildRestrict:
                         asub, apos = graph.matSubPosMap[a] 
                         bsub, bpos = graph.matSubPosMap[b] 
                         if asub == bsub and apos != bpos:
