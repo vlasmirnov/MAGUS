@@ -81,7 +81,7 @@ if __name__ == '__main__':
     
     parser.add_argument("--graphbuildhmmextend", type=str,
                         help="Extend the alignment graph MAFFT backbones with hmmer (true or false)",
-                        required=False, default="True")
+                        required=False, default="False")
     
     parser.add_argument("--graphclustermethod", type=str,
                         help="Method for initial clustering of the alignment graph (mcl or none)",
