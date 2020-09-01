@@ -7,11 +7,10 @@ Created on May 14, 2020
 import os
 
 from align.merge.alignment_graph import AlignmentGraph
-from align.merge.graph_build import buildGraph
-from align.merge.graph_cluster import clusterGraph
+from align.merge.graph_builder import buildGraph
+from align.merge.graph_cluster.clusterer import clusterGraph
 from align.merge.graph_trace.tracer import findTrace
-from configuration import Configs
-from tools import external_tools
+from align.merge.optimizer import optimizeTrace
 
 def mergeSubalignments(workingDir, subalignmentPaths, outputPath):
     baseName = os.path.splitext(os.path.basename(outputPath))[0]
@@ -24,6 +23,7 @@ def mergeSubalignments(workingDir, subalignmentPaths, outputPath):
     buildGraph(graph)
     clusterGraph(graph)
     findTrace(graph)
+    optimizeTrace(graph)
     graph.clustersToAlignment(outputPath)
     
     

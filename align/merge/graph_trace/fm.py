@@ -17,6 +17,10 @@ def fmAlgorithm(graph):
     lowerBound = [graph.subsetMatrixIdx[i] for i in range(k)]
     upperBound = [graph.subsetMatrixIdx[i] + graph.subalignmentLengths[i] for i in range(k)]  
     
+    if graph.clusters is None or len(graph.clusters) == 0:
+        graph.buildNodeEdgeDataStructure()
+    else:
+        graph.buildNodeEdgeDataStructureFromClusters()
     clusters, totalCost, cuts = fmPartition(graph, lowerBound, upperBound)
     
     #Configs.log("Final clusters:")
@@ -92,21 +96,28 @@ def fmFindBestCut(graph, lowerBound, upperBound, startingCut, widthSumLimit):
             updateHeapGainList(graph, cut, updateList, gains, heapGains, heapGainsVersions, heap, locked) 
             
             found = False
+            reinsert = []
             while len(heap) > 0:
                 gain, node, gainVersion = heapq.heappop(heap)
-                gain = gain * -1
-                asub, apos = graph.matSubPosMap[node]
-                if node < newLowerBound[asub] or node >= newUpperBound[asub]:
+                if node in locked or gainVersion != heapGainsVersions[node]:
                     continue
                 
-                if node not in locked and gainVersion == heapGainsVersions[node]:
-                    found = True
-                    break
-            if not found:
+                asub, apos = graph.matSubPosMap[node]
+                if node < newLowerBound[asub] or node >= newUpperBound[asub]:
+                    reinsert.append((gain, node, gainVersion))
+                    continue
+
+                found = True
                 break
             
+            if not found:
+                break
+            for item in reinsert:
+                heapq.heappush(heap, item)
+            
             locked.add(node)
-            asub, apos = graph.matSubPosMap[node]
+            gain = gain * -1
+            #asub, apos = graph.matSubPosMap[node]
             movedNodes = []
             if node >= cut[asub]:
                 movedNodes = [j for j in range(cut[asub], node+1)]

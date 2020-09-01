@@ -203,3 +203,54 @@ class AlignmentGraph:
                     cutCost = cutCost + value
     
         return int(cutCost/2) 
+    
+    def addSingletonClusters(self, clusters):
+        newClusters = []
+        
+        lastIdx = list(self.subsetMatrixIdx) 
+        for cluster in clusters:
+            for a in cluster:
+                #print(a)
+                asub, apos = self.matSubPosMap[a]                
+                for node in range(lastIdx[asub], a):
+                    newClusters.append([node])
+                lastIdx[asub] = a+1
+            newClusters.append(cluster)
+        for i in range(len(lastIdx)):
+            for node in range(lastIdx[i], self.subsetMatrixIdx[i] + self.subalignmentLengths[i]):
+                newClusters.append([node])
+        return newClusters
+        
+    '''
+    def plotClusterHistogram(self, clusters, numBins, outputFile):
+        import matplotlib.pyplot as plt
+        from matplotlib import colors
+        fig, ax = plt.subplots(1, 1, tight_layout=True)
+        plt.rcParams.update({'font.size': 15})
+        
+        totalClusters = clusters[:]
+        nodeClusters = {}
+        for n, cluster in enumerate(clusters):
+            for a in cluster:
+                nodeClusters[a] = n
+        for a in range(self.matrixSize):
+            if a not in nodeClusters:
+                totalClusters.append([a])
+        print("Plotting out {} clusters..".format(len(totalClusters)))
+        print("Recomputed clustering cost {}".format(self.computeClusteringCost(totalClusters)))
+        x = [len(c) for c in totalClusters]
+        
+        ax.set_facecolor((0.9,0.9,0.9))        
+        N, bins, patches = plt.hist(x, bins=numBins)
+
+        fracs = N / N.max()        
+        norm = colors.Normalize(fracs.min(), fracs.max())
+        
+        for thisfrac, thispatch in zip(fracs, patches):
+            color = plt.cm.magma(norm(thisfrac))
+            #thispatch.set_facecolor(color)
+        
+        fig.canvas.draw()
+        #fig.savefig(outputFile, bbox_inches = 'tight', pad_inches = 0, dpi=300)
+        fig.savefig(outputFile, bbox_inches = 'tight', pad_inches = 0)
+    '''

@@ -1,39 +1,11 @@
 '''
-Created on Apr 14, 2020
+Created on Aug 23, 2020
 
 @author: Vlad
 '''
 
-import time
-import os
-
 from configuration import Configs
-from tools import external_tools
 
-def clusterGraph(graph):
-    time1 = time.time()
-    
-    if Configs.graphClusterMethod == "mcl" or Configs.graphTraceMethod == "minclusters":
-        Configs.log("Running MCL alignment graph clustering..")
-        runMclClustering(graph)
-        purgeDuplicateClusters(graph)
-        purgeClusterViolations(graph)
-    else:
-        Configs.log("No alignment graph clustering..")
-    
-    time2 = time.time()  
-    Configs.log("Clustered the graph in {} sec..".format(time2-time1))
-
-def runMclClustering(graph):  
-    graph.clusterPath = os.path.join(graph.workingDir, "clusters.txt")
-    
-    if not os.path.exists(graph.clusterPath):
-        external_tools.runMcl(graph.graphPath, Configs.mclInflationFactor, graph.workingDir, graph.clusterPath)
-    else:
-        Configs.log("Found existing cluster file {}".format(graph.clusterPath))
-    graph.readClustersFromFile(graph.clusterPath)
-    
-    
 def purgeDuplicateClusters(graph):
     uniqueClusters = set()
     newclusters = []
@@ -83,3 +55,4 @@ def purgeClusterViolations(graph):
     
     graph.clusters = [cluster for cluster in graph.clusters if len(cluster) > 1]
     Configs.log("Purged cluster violations. Found {} clean clusters..".format(len(graph.clusters)))
+    

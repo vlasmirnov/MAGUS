@@ -81,7 +81,7 @@ if __name__ == '__main__':
     
     parser.add_argument("--graphbuildhmmextend", type=str,
                         help="Extend the alignment graph MAFFT backbones with hmmer (true or false)",
-                        required=False, default="False")
+                        required=False, default="True")
     
     parser.add_argument("--graphclustermethod", type=str,
                         help="Method for initial clustering of the alignment graph (mcl or none)",
@@ -90,6 +90,10 @@ if __name__ == '__main__':
     parser.add_argument("--graphtracemethod", type=str,
                         help="Method for finding a trace from the alignment graph (minclusters, fm, mwtgreedy, or mwtsearch)",
                         required=False, default="minclusters")
+    
+    parser.add_argument("--graphtraceoptimize", type=str,
+                        help="Run an optimization step on the graph trace (true or false)",
+                        required=False, default="False")
     
     parser.add_argument("-r", "--mafftruns", type=int,
                         help="Number of MAFFT runs", required=False, default=10)

@@ -1,0 +1,135 @@
+Compilation:
+-----------
+
+- A simple 'make' should do in Unix-like environments. It creates
+  the executables 'mlrmcl' and 'ncut' in the top-level
+  directory.
+
+- 'make realclean' removes all libraries, executables and object
+  files.
+
+General Usage and Options:
+-------------------------
+
+- Executing a program without arguments will print its usage.
+
+- The options may be specified in any order (similar to how it
+  works for general unix utilities).
+
+Usage and Options for mlrmcl:
+----------------------------
+
+- The only required argument for mlrmcl is the graph file. The
+  format for this file is described below in the Format section.
+
+- The output file can be specified using the -o option. This is
+  optional. The file that the output is written to is printed in
+  the stdout output of the program.
+
+- The granularity of the output clustering can be controlled
+  using the '-c' option. This option specifies how small the
+  graph can get before the coarsening in MLR-MCL stops. For
+  example, if mlrmcl is run with '-c 1000', the graph is
+  coarsened until it has no more than 1000 vertices.
+  The default value for this option is 1000. If c is the same as
+  the number of vertices in the graph, then no coarsening will
+  take place at all and this is the same as R-MCL. The smaller
+  the value of this option, the fewer clusters are output by the
+  program. Note that if the cluster structure is especially
+  clear (such as for synthetic graphs), 
+  the program will simply output the same clustering
+  regardless of the parameter value.
+
+- The balance (i.e. the variance in output cluster sizes) can be
+  controlled using the '-b' option. The default value of 0.5
+  should be good enough in most cases. If you find that the
+  output clustering is too balanced, you can try lower values for
+  b (until 0), or if it is too imbalanced, you can try higher
+  values for b such as 0.75 or 1.
+
+- The inflation parameter is specified using the '-i option' and 
+  can also be used to control the granularity of the clustering.
+  (In the case when no coarsening is performed, i.e. for R-MCL,
+  it is the only way to control the number of clusters.) Higher
+  values of 'i' lead to more clusters, and the clustering also
+  converges faster. The default is 2.0.
+
+Usage and Options for mergeClusters:
+-----------------------------------
+
+- The mergeClusters program performs hierarchical agglomerative
+  clustering. It may be used in situations where the user needs
+  to exactly control the number of output clusters. First, one
+  can run MLR-MCL, setting the options such that more clusters
+  than required are output by the program. Subsequently one may
+  run the mergeClusters program, specifying the number of merges
+  to be the same as the number of additional clusters that were
+  output by MLR-MCL.
+
+- The exact usage for mergeClusters can be seen by executing the
+  program without any arguments.
+
+Input format:
+------------
+
+- The input format is the same as that for Metis and Graclus. A
+  pdf document explaining this format is available at
+  http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/manual.pdf
+  This pdf is also present inside the Metis distribution. For
+  convenience, we have also included a copy of this manual under
+  the name metis.4.0.manual.pdf.
+
+Output format:
+-------------
+
+- The output format is also the same as that for Metis and
+  Graclus. Each line contains the cluster index to which the
+  node of the corresponding line number has been assigned. (For
+  example, if line 20 is '4', that means that the node 20 has
+  been assigned to the cluster 4.) 
+
+Examples:
+---------
+- The 'examples' folder has two graphs: synthetic.graph, which
+  is a synthetic graph of 1000  nodes, generated with 25 clusters 
+  and astro.graph, which is a collaboration network of astro physics 
+  researchers (see http://snap.stanford.edu). 
+  The following are some example usages
+  (assuming the software is compiled, and we are in the example
+  directory):
+
+- ../mlrmcl -o synthetic.graph.out synthetic.graph
+- ../mlrmcl -o astro.graph.out astro.graph  
+- ../mlrmcl -c 500 -o astro.graph.c500.out astro.graph  
+- ../mlrmcl -c 2000 -o astro.graph.c2000.out astro.graph  
+- ../mlrmcl -c 2000 -b 0.25 -o astro.graph.c2000.b0.25.out astro.graph  
+- ../mlrmcl -c 20000 -i 1.8 -b 0.25 -o astro.graph.c20000.i1.8.b0.25.out astro.graph  
+ 	(The last example above does not perform any coarsening, since
+	the c value 20000 is more than the number of vertices in the
+	graph, which is 17903.)
+
+- ../mergeClusters -e astro.graph.c500.out -n 10 -o astro.graph.c500.10merges.out astro.graph 
+	(If astro.graph.c500.out represents the clustering of
+	astro.graph into x clusters, then
+	astro.graph.c500.10.merges.out is a clustering of x-10
+	clusters.)
+
+
+References:
+----------
+- Venu Satuluri and Srinivasan Parthasarathy. "Scalable Graph
+  Clustering using Stochastic Flows: Applications to Community
+  Discovery." Proceedings of ACM SIGKDD 2009, Paris.
+
+- Venu Satuluri, Srinivasan Parthasarathy and Dugyu Ucar. "Markov
+  Clustering of Protein Interaction Networks with Improved
+  Balance and Scalablity". Proceedings of ACM BCB 2010, Niagara
+  Falls.
+
+Acknowledgments:
+---------------
+I am very grateful to the authors of Metis and Graclus for releasing
+the source of their softwares, as this has enabled me to
+implement my own software much faster than would have been
+possible otherwise.
+

@@ -16,6 +16,12 @@ def mwtGreedySearch(graph):
     k = len(graph.subalignments)
     lowerBound = [graph.subsetMatrixIdx[i] for i in range(k)]
     upperBound = [graph.subsetMatrixIdx[i] + graph.subalignmentLengths[i] for i in range(k)] 
+    
+    if graph.clusters is None or len(graph.clusters) == 0:
+        graph.buildNodeEdgeDataStructure()
+    else:
+        graph.buildNodeEdgeDataStructureFromClusters()
+    
     context = MwtSearchContext(lowerBound, upperBound)
     state = MwtSearchState()
     state.frontier = list(lowerBound)    
@@ -28,6 +34,12 @@ def mwtSearch(graph):
     k = len(graph.subalignments)
     lowerBound = [graph.subsetMatrixIdx[i] for i in range(k)]
     upperBound = [graph.subsetMatrixIdx[i] + graph.subalignmentLengths[i] for i in range(k)] 
+    
+    if graph.clusters is None or len(graph.clusters) == 0:
+        graph.buildNodeEdgeDataStructure()
+    else:
+        graph.buildNodeEdgeDataStructureFromClusters()
+    
     clusters, totalCost = mwtHeuristicSearch(graph, lowerBound, upperBound)
     return clusters
     

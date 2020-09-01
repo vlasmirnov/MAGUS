@@ -59,6 +59,19 @@ def runMcl(matrixPath, inflation, workingDir, outputPath):
     subprocess.run(command, shell=True, cwd = workingDir)
     return command
 
+def runMlrMcl(matrixPath, granularity, balance, inflation, workingDir, outputPath):
+    args = [Configs.mlrmclPath, matrixPath, "-o", outputPath]
+    if granularity is not None:
+        args.extend(["-c", str(granularity)])
+    if balance is not None:
+        args.extend(["-b", str(balance)])    
+    if inflation is not None:
+        args.extend(["-i", str(inflation)])
+    command = subprocess.list2cmdline(args)
+    Configs.log("Running command: {}".format(command))
+    subprocess.run(command, shell=True, cwd = workingDir)
+    return command
+
 def runFastTree(fastaFilePath, workingDir, outputPath):
     #tempFile = os.path.join(workingDir, os.path.basename(outputPath))
     args = [Configs.fasttreePath]

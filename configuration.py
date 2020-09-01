@@ -29,6 +29,7 @@ class Configs:
     graphBuildRestrict = False
     graphClusterMethod = "mcl" 
     graphTraceMethod = "minclusters"
+    graphTraceOptimize = False
     
     mafftRuns = 10
     mafftSize = 200
@@ -36,6 +37,7 @@ class Configs:
     
     mafftPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mafft/mafft")
     mclPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mcl/bin/mcl")
+    mlrmclPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mlrmcl/mlrmcl")
     hmmalignPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/hmmer/hmmalign")
     hmmbuildPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/hmmer/hmmbuild")
     hmmsearchPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/hmmer/hmmsearch")
@@ -103,6 +105,7 @@ def buildConfigs(args):
     Configs.graphBuildRestrict = args.graphbuildrestrict.lower() == "true"
     Configs.graphClusterMethod = args.graphclustermethod
     Configs.graphTraceMethod = args.graphtracemethod
+    Configs.graphTraceOptimize = args.graphtraceoptimize.lower() == "true"
 
     Configs.mafftRuns = args.mafftruns
     Configs.mafftSize = args.mafftsize
