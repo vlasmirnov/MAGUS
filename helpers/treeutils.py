@@ -14,7 +14,7 @@ import random
 
 
 def loadTree(treePath, nameSpace=None):
-    tree = dendropy.Tree.get(path=treePath, schema="newick")
+    tree = dendropy.Tree.get(path=treePath, schema="newick", preserve_underscores=True)
     if nameSpace is None:
         nameSpace = tree.taxon_namespace
     else:
@@ -42,11 +42,13 @@ def compareTreesFromPath(treePath1, treePath2):
     tr1 = dendropy.Tree.get(path=treePath1,
                             schema='newick',
                             rooting='force-unrooted',
-                            taxon_namespace=tax)
+                            taxon_namespace=tax,
+                            preserve_underscores=True)
     tr2 = dendropy.Tree.get(path=treePath2,
                             schema='newick',
                             rooting='force-unrooted',
-                            taxon_namespace=tax)
+                            taxon_namespace=tax,
+                            preserve_underscores=True)
 
     tr1.collapse_basal_bifurcation(set_as_unrooted_tree=True)
     tr2.collapse_basal_bifurcation(set_as_unrooted_tree=True)
