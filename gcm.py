@@ -50,6 +50,10 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--guidetree", type=str,
                         help="User guide tree for alignment",
                         required=False, default=None)
+
+    parser.add_argument("-np", "--numprocs", type=int,
+                        help="Number of processors to use (default: # cpus available)",
+                        required=False, default=-1)
     
     parser.add_argument("--maxsubsetsize", type=int,
                         help="Maximum subset size for divide-and-conquer",

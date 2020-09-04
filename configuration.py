@@ -8,7 +8,7 @@ import os
 import time
 from helpers import sequenceutils
 
-class Configs:
+class   Configs:
     
     workingDir = None
     sequencesPath = None
@@ -93,7 +93,12 @@ def buildConfigs(args):
                 Configs.backbonePaths.append(os.path.join(path, filename))
         else:
             Configs.backbonePaths.append(path)
-    
+
+    if args.numprocs > 0:
+        Configs.numCores = args.numprocs
+    else:
+        Configs.numCores = os.cpu_count()
+
     Configs.decompositionMaxSubsetSize = args.maxsubsetsize
     Configs.decompositionMaxNumSubsets = args.maxnumsubsets
     Configs.decompositionStrategy = args.decompstrategy
@@ -112,6 +117,6 @@ def buildConfigs(args):
     Configs.mclInflationFactor = args.inflationfactor
     
     Configs.logPath = os.path.join(Configs.workingDir, "log.txt")    
-    Configs.numCores = os.cpu_count()
+
 
        
