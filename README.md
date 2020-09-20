@@ -50,9 +50,9 @@ Instead of passing a directory with **-s**, you can pass a list of subalignment 
 
 ## Things to Keep in Mind
 
-* GCM will not overwrite existing backbone, graph and cluster files.  
+* MAGUS will not overwrite existing backbone, graph and cluster files.  
 Please delete them/specify a different working directory to perform a clean run.
-* Related issue: if GCM is stopped while running MAFFT, MAFFT's output backbone files will be empty.  
-This will cause errors if GCM reruns and finds these empty files.
+* Related issue: if MAGUS is stopped while running MAFFT, MAFFT's output backbone files will be empty.  
+This will cause errors if MAGUS reruns and finds these empty files.
 * A large number of subalignments (>100) will start to significantly slow down the ordering phase, especially for very heterogenous data.  
 I would generally disadvise using more than 50 subalignments, unless the data is expected to be well-behaved.  
