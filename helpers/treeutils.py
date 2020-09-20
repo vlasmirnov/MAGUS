@@ -27,9 +27,9 @@ def loadTree(treePath, nameSpace=None):
     return tree
 
 def writeTree(tree, outputPath):
-    resultTreeString = tree.as_string(schema="newick")
+    resultTreeString = tree.as_string(schema="newick", suppress_rooting = True)
     with open(outputPath, "w") as f:
-        f.write(resultTreeString[5:]) 
+        f.write(resultTreeString) 
 
 def compareTreesFromDendropy(tr1, tr2):
     return compareDendropyTrees(dendropy.Tree(tr1), dendropy.Tree(tr2))

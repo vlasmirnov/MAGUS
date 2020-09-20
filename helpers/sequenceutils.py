@@ -134,15 +134,27 @@ def convertRnaToDna(filePath, destFile = None):
 
 def inferDataType(filePath):
     sequences = readFromFasta(filePath, removeDashes=True)
-    dataType = "dna"
+    acg, t, u, total = 0, 0, 0, 0
     for taxon in sequences:
         letters = sequences[taxon].seq.upper()
         for letter in letters:
-            if letter in ('A', 'C', 'G', 'T'):
-                continue
+            total = total + 1
+            
+            if letter in ('A', 'C', 'G', 'N'):
+                acg = acg + 1
+            elif letter == 'T':
+                t = t + 1
             elif letter == 'U':
-                dataType = "rna"
-            else:
-                dataType = "protein"
-                return dataType
+                u = u + 1
+    
+    if u == 0 and (acg + t)/total > 0.9:
+        print("Found {}% ACGT-N, assuming DNA..".format(int(100*(acg + t)/total)))
+        dataType = "dna"
+    elif t == 0 and (acg + u)/total > 0.9:
+        print("Found {}% ACGU-N, assuming RNA..".format(int(100*(acg + u)/total)))
+        dataType = "rna"
+    else:
+        print("Assuming protein..")
+        dataType = "protein"
+          
     return dataType

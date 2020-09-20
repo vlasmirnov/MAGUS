@@ -69,7 +69,7 @@ def buildConfigs(args):
     if args.directory is not None:
         Configs.workingDir = os.path.abspath(args.directory) 
     else:
-        Configs.workingDir = os.path.join(os.path.dirname(Configs.outputPath), "gcm_working_dir")
+        Configs.workingDir = os.path.join(os.path.dirname(Configs.outputPath), "magus_working_dir")
     if not os.path.exists(Configs.workingDir):
         os.makedirs(Configs.workingDir)
     

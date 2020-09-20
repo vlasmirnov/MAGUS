@@ -131,8 +131,10 @@ def addAlignmentFileToGraph(alignedFile, graph, extensionAlignedFile = None):
     if extensionAlignedFile is not None:
         extensionAlign = sequenceutils.readFromStockholm(extensionAlignedFile, includeInsertions = True)
         backboneAlign.update(extensionAlign)
+        Configs.log("Applied HMM-extension to the backbone alignment from {}".format(alignedFile))
     
     alignmap = backboneToAlignMap(graph, backboneAlign, alignmentLength)
+    Configs.log("Constructed backbone alignment map from {}".format(alignedFile))
     
     with graph.matrixLock:
         for l in range(alignmentLength):  

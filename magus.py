@@ -16,7 +16,7 @@ from configuration import buildConfigs, Configs
 def main(args):   
     startTime = time.time()
     buildConfigs(args)
-    Configs.log("GCM was run with: {}".format(" ".join(sys.argv)))
+    Configs.log("MAGUS was run with: {}".format(" ".join(sys.argv)))
     
     if Configs.sequencesPath is not None:
         Configs.log("Aligning sequences {}".format(Configs.sequencesPath))
@@ -26,7 +26,7 @@ def main(args):
         mergeSubalignments(Configs.workingDir, Configs.subsetPaths, Configs.outputPath)
     
     endTime = time.time()
-    Configs.log("GCM finished in {} seconds..".format(endTime-startTime))
+    Configs.log("MAGUS finished in {} seconds..".format(endTime-startTime))
     
 
 if __name__ == '__main__':
