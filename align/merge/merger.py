@@ -5,25 +5,29 @@ Created on May 14, 2020
 '''
 
 import os
+import time
 
-from align.merge.alignment_graph import AlignmentGraph
+
 from align.merge.graph_builder import buildGraph
 from align.merge.graph_cluster.clusterer import clusterGraph
 from align.merge.graph_trace.tracer import findTrace
 from align.merge.optimizer import optimizeTrace
+from configuration import Configs
 
-def mergeSubalignments(workingDir, subalignmentPaths, outputPath):
-    baseName = os.path.splitext(os.path.basename(outputPath))[0]
-    mergingDir = os.path.join(workingDir, "merging_{}".format(baseName))
-    if not os.path.exists(mergingDir):
-        os.makedirs(mergingDir)
+def mergeSubalignments(task):
+    Configs.log("Merging {} subaligments..".format(len(task.subalignmentPaths)))
+    time1 = time.time()  
+        
+    buildGraph(task)
+    clusterGraph(task.graph)
+    findTrace(task.graph)
     
-    graph = AlignmentGraph(mergingDir)
-    graph.loadSubalignments(subalignmentPaths)    
-    buildGraph(graph)
-    clusterGraph(graph)
-    findTrace(graph)
-    optimizeTrace(graph)
-    graph.clustersToAlignment(outputPath)
+    if max(task.graph.subalignmentLengths) > 10000:
+        task.graph.cheaterAlignment(task.outputFile)
+    else:
+        task.graph.addSingletonClusters()
+        optimizeTrace(task.graph)
+        task.graph.clustersToAlignment(task.outputFile)
     
-    
+    time2 = time.time()  
+    Configs.log("Merged {} subalignments into {} in {} sec..".format(len(task.subalignmentPaths), task.outputFile, time2-time1))

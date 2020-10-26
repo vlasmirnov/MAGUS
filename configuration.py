@@ -6,9 +6,10 @@ Created on Apr 14, 2020
 
 import os
 import time
+
 from helpers import sequenceutils
 
-class   Configs:
+class Configs:
     
     workingDir = None
     sequencesPath = None
@@ -19,7 +20,7 @@ class   Configs:
     dataType = None
     
     decompositionMaxNumSubsets = 25
-    decompositionMaxSubsetSize = 50
+    decompositionMaxSubsetSize = 100
     decompositionStrategy = "pastastyle"
     decompositionSkeletonSize = 300
     #decompositionKmhIterations = 1
@@ -41,7 +42,7 @@ class   Configs:
     hmmalignPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/hmmer/hmmalign")
     hmmbuildPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/hmmer/hmmbuild")
     hmmsearchPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/hmmer/hmmsearch")
-    fasttreePath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/fasttree/FastTree")
+    fasttreePath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/fasttree/FastTreeMP")
     raxmlPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/raxmlng/raxml-ng")
     
     logPath = None
@@ -117,6 +118,3 @@ def buildConfigs(args):
     Configs.mclInflationFactor = args.inflationfactor
     
     Configs.logPath = os.path.join(Configs.workingDir, "log.txt")    
-
-
-       

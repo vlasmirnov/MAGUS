@@ -6,61 +6,55 @@ Created on Apr 14, 2020
 
 import subprocess
 import os
-import shutil
 import random
-import concurrent.futures
 from configuration import Configs
-
+from helpers import tasks
 
 def generateMafftFilePathMap(inputPaths, outputDir):
-    mafftMap = {}
-    for inputPath in inputPaths:
-        alignedPath = os.path.join(outputDir, "mafft_{}".format(os.path.basename(inputPath)))
-        mafftMap[inputPath] = alignedPath
+    mafftMap = {inputPath : os.path.join(outputDir, "mafft_{}".format(os.path.basename(inputPath))) for inputPath in inputPaths}
     return mafftMap
 
 def buildMafftAlignments(inputOutputPathMap):
-    print("Launching {} MAFFT alignments with {} workers..".format(len(inputOutputPathMap), Configs.numCores))
+    tasks = [buildMafftAlignment(inputPath, outputPath) for inputPath, outputPath in inputOutputPathMap.items()]
+    return tasks
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers = Configs.numCores) as executor:
-        jobs = {executor.submit(buildMafftAlignment, inputPath, inputOutputPathMap[inputPath]) : inputPath
-                   for inputPath in inputOutputPathMap}
-        for job in concurrent.futures.as_completed(jobs):
-            try:
-                job.result()
-            except Exception as exc:
-                print("Worker for MAFFT alignment {} threw an exception:\n{}".format(jobs[job], exc))
-                raise
-    print("All MAFFT alignment workers done..")
-
 def buildMafftAlignment(inputPath, outputPath, subtablePath = None):
-    if not os.path.exists(outputPath):         
-        print("Launching MAFFT on {}..".format(inputPath))  
-        runMafft(inputPath, subtablePath, Configs.workingDir, outputPath, Configs.numCores)                
-    print("Completed MAFFT on {}..".format(inputPath))
+    return runMafft(inputPath, subtablePath, Configs.workingDir, outputPath, Configs.numCores)                
 
 def runMafft(fastaPath, subtablePath, workingDir, outputPath, threads = 1):
+    tempPath = os.path.join(os.path.dirname(outputPath), "temp_{}".format(os.path.basename(outputPath)))
     args = [Configs.mafftPath, "--localpair", "--maxiterate", "1000", "--ep", "0.123", 
             "--quiet", "--thread", str(threads), "--anysymbol"]
     if subtablePath is not None:
         args.extend(["--merge", subtablePath])
-    args.extend([fastaPath, ">", outputPath])
-    command = subprocess.list2cmdline(args)
-    Configs.log("Running command: {}".format(command))
-    subprocess.run(command, shell=True, cwd = workingDir)
-    return command
+    args.extend([fastaPath, ">", tempPath])
+    command = subprocess.list2cmdline(args)    
+    copyMap = {tempPath : outputPath}
+    return tasks.Task(command = command, workingDir = workingDir, outputFile = outputPath, fileCopyMap = copyMap)
+
+def runMafftGuideTree(fastaPath, workingDir, outputPath, threads = 1):
+    tempPath = os.path.join(os.path.dirname(outputPath), "temp_{}".format(os.path.basename(outputPath)))
+    treeFile = os.path.join(os.path.dirname(fastaPath),  "{}.tree".format(os.path.basename(fastaPath)))
+    args = [Configs.mafftPath, "--retree", "0", "--treeout", "--parttree",
+            "--quiet", "--thread", str(threads), "--anysymbol"]
+    args.extend(["--partsize", "1000"])
+    args.extend([fastaPath, ">", tempPath])
+    command = subprocess.list2cmdline(args)    
+    copyMap = {treeFile : outputPath}
+    return tasks.Task(command = command, workingDir = workingDir, outputFile = outputPath, fileCopyMap = copyMap)
 
 def runMcl(matrixPath, inflation, workingDir, outputPath):
-    args = [Configs.mclPath, matrixPath, "--abc", "-o", outputPath]
+    tempPath = os.path.join(os.path.dirname(outputPath), "temp_{}".format(os.path.basename(outputPath)))
+    args = [Configs.mclPath, matrixPath, "--abc", "-o", tempPath]
     if inflation is not None:
         args.extend(["-I", str(inflation)])
     command = subprocess.list2cmdline(args)
-    Configs.log("Running command: {}".format(command))
-    subprocess.run(command, shell=True, cwd = workingDir)
-    return command
+    copyMap = {tempPath : outputPath}
+    return tasks.Task(command = command, workingDir = workingDir, outputFile = outputPath, fileCopyMap = copyMap)
 
 def runMlrMcl(matrixPath, granularity, balance, inflation, workingDir, outputPath):
-    args = [Configs.mlrmclPath, matrixPath, "-o", outputPath]
+    tempPath = os.path.join(os.path.dirname(outputPath), "temp_{}".format(os.path.basename(outputPath)))
+    args = [Configs.mlrmclPath, matrixPath, "-o", tempPath]
     if granularity is not None:
         args.extend(["-c", str(granularity)])
     if balance is not None:
@@ -68,22 +62,37 @@ def runMlrMcl(matrixPath, granularity, balance, inflation, workingDir, outputPat
     if inflation is not None:
         args.extend(["-i", str(inflation)])
     command = subprocess.list2cmdline(args)
-    Configs.log("Running command: {}".format(command))
-    subprocess.run(command, shell=True, cwd = workingDir)
-    return command
+    copyMap = {tempPath : outputPath}
+    return tasks.Task(command = command, workingDir = workingDir, outputFile = outputPath, fileCopyMap = copyMap)
 
-def runFastTree(fastaFilePath, workingDir, outputPath):
-    #tempFile = os.path.join(workingDir, os.path.basename(outputPath))
+def runFastTree(fastaFilePath, workingDir, outputPath, mode = "normal", intree = None):
+    tempPath = os.path.join(os.path.dirname(outputPath), "temp_{}".format(os.path.basename(outputPath)))
+    
     args = [Configs.fasttreePath]
     if Configs.inferDataType(fastaFilePath) == "protein":
         args.extend(["-lg"])
     else:
         args.extend(["-nt", "-gtr"])
-    args.extend([fastaFilePath, ">", outputPath])
+    
+    if intree is not None:
+        args.extend(["-intree", intree])
+    
+    if mode == "fast":
+        #args.extend(["-fastest", "-quiet", "-mlnni", "4"]) 
+        args.extend(["-fastest"]) 
+    elif mode == "faster":
+        #args.extend(["-fastest", "-quiet", "-mlnni", "4"]) 
+        args.extend(["-fastest", "-mlnni", "4" ]) 
+    elif mode == "fastest":
+        #args.extend(["-fastest", "-quiet", "-noml"])
+        args.extend(["-fastest", "-noml"])
+    
+    #logPath = os.path.join(workingDir, "fasttree_log.txt")
+    #args.extend(["-log", logPath])    
+    args.extend([fastaFilePath, ">", tempPath])
     command = subprocess.list2cmdline(args)
-    Configs.log("Running command: {}".format(command))
-    subprocess.run(command, shell=True, cwd = workingDir)
-    return command
+    copyMap = {tempPath : outputPath}
+    return tasks.Task(command = command, workingDir = workingDir, outputFile = outputPath, fileCopyMap = copyMap)
 
 def runRaxmlNg(fastaFilePath, workingDir, outputPath, threads = 8):
     # raxml-ng --msa prim.phy --model GTR+G --prefix T4 --threads 2 --seed 2 --tree pars{25},rand{25}
@@ -104,36 +113,29 @@ def runRaxmlNg(fastaFilePath, workingDir, outputPath, threads = 8):
     args.extend(["--tree", "pars{{{}}}".format(1)])
     
     command = subprocess.list2cmdline(args)
-    Configs.log("Running command: {}".format(command))
-    subprocess.run(command, shell=True, cwd = workingDir)
-    shutil.copyfile(raxmlFile, outputPath)
-    return command
+    copyMap = {raxmlFile : outputPath}
+    return tasks.Task(command = command, workingDir = workingDir, outputFile = outputPath, fileCopyMap = copyMap)
 
 def runHmmBuild(alignmentPath, workingDir, outputPath):
-    #tempFile = os.path.join(workingDir, os.path.basename(outputPath))    
-    #args = [hmmBuildPath,'--ere', '0.59', "--cpu", "1", "--dna"]
+    tempPath = os.path.join(os.path.dirname(outputPath), "temp_{}".format(os.path.basename(outputPath)))
     args = [Configs.hmmbuildPath,'--ere', '0.59', "--cpu", "1"]
-    args.extend(["--symfrac", "0.0", "--informat", "afa", outputPath, alignmentPath])
+    args.extend(["--symfrac", "0.0", "--informat", "afa", tempPath, alignmentPath])
     command = subprocess.list2cmdline(args)
-    Configs.log("Running command: {}".format(command))
-    subprocess.run(command, shell=True, cwd = workingDir)
-    return command
+    copyMap = {tempPath : outputPath}
+    return tasks.Task(command = command, workingDir = workingDir, outputFile = outputPath, fileCopyMap = copyMap)
 
 def runHmmAlign(hmmModelPath, fragPath, workingDir, outputPath):
-    #tempFile = os.path.join(workingDir, os.path.basename(outputPath))    
-    #args = [hmmAlignPath,"--dna", "-o", outputPath]
-    args = [Configs.hmmalignPath, "-o", outputPath]
+    tempPath = os.path.join(os.path.dirname(outputPath), "temp_{}".format(os.path.basename(outputPath)))
+    args = [Configs.hmmalignPath, "-o", tempPath]
     args.extend([hmmModelPath, fragPath])
     command = subprocess.list2cmdline(args)
-    Configs.log("Running command: {}".format(command))
-    subprocess.run(command, shell=True, cwd = workingDir)
-    return command
+    copyMap = {tempPath : outputPath}
+    return tasks.Task(command = command, workingDir = workingDir, outputFile = outputPath, fileCopyMap = copyMap)
 
 def runHmmSearch(hmmModelPath, fragPath, workingDir, outputPath):
-    #tempFile = os.path.join(workingDir, os.path.basename(outputPath))    
-    args = [Configs.hmmsearchPath,"--noali", "--cpu", "1", "-o", outputPath, "-E", "99999999", "--max"]
+    tempPath = os.path.join(os.path.dirname(outputPath), "temp_{}".format(os.path.basename(outputPath)))
+    args = [Configs.hmmsearchPath,"--noali", "--cpu", "1", "-o", tempPath, "-E", "99999999", "--max"]
     args.extend([hmmModelPath, fragPath])
     command = subprocess.list2cmdline(args)
-    Configs.log("Running command: {}".format(command))
-    subprocess.run(command, shell=True, cwd = workingDir)
-    return command
+    copyMap = {tempPath : outputPath}
+    return tasks.Task(command = command, workingDir = workingDir, outputFile = outputPath, fileCopyMap = copyMap)

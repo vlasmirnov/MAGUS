@@ -32,6 +32,10 @@ def findTrace(graph):
         graph.clusters = rgFastSearch(graph)
     elif Configs.graphTraceMethod == "naive":
         graph.clusters = naiveClustering(graph)
+    
+    #for cluster in graph.clusters:
+    #    Configs.log("{}".format(cluster.sorted()))
+    
         
     time2 = time.time()
     Configs.log("Found alignment graph trace in {} sec..".format(time2-time1))

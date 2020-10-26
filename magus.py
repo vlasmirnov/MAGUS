@@ -7,29 +7,31 @@ Created on Apr 14, 2020
 import time
 import argparse
 import sys
+import traceback
 
-from align.aligner import alignSequences
-from align.merge.merger import mergeSubalignments
+from align.aligner import mainAlignmentTask
 from configuration import buildConfigs, Configs
+from helpers import tasks
 
-
-def main(args):   
+def main():   
     startTime = time.time()
-    buildConfigs(args)
+    args = parseArgs()
+    buildConfigs(args)    
     Configs.log("MAGUS was run with: {}".format(" ".join(sys.argv)))
     
-    if Configs.sequencesPath is not None:
-        Configs.log("Aligning sequences {}".format(Configs.sequencesPath))
-        alignSequences(Configs.workingDir, Configs.sequencesPath, Configs.outputPath)
-    else:
-        Configs.log("Merging {} sequences..".format(len(Configs.subsetPaths)))
-        mergeSubalignments(Configs.workingDir, Configs.subsetPaths, Configs.outputPath)
+    try:
+        tasks.startTaskManager()
+        mainAlignmentTask()
+    except:
+        Configs.log("MAGUS aborted with an exception..")
+        Configs.log(traceback.format_exc())
+    finally:
+        tasks.stopTaskManager()
     
     endTime = time.time()
     Configs.log("MAGUS finished in {} seconds..".format(endTime-startTime))
     
-
-if __name__ == '__main__':
+def parseArgs():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--directory", type=str,
@@ -107,5 +109,8 @@ if __name__ == '__main__':
     
     parser.add_argument("-f", "--inflationfactor", type=float,
                         help="MCL inflation factor", required=False, default=4)
+       
+    return parser.parse_args()
 
-    main(parser.parse_args())
+if __name__ == '__main__':
+    main()

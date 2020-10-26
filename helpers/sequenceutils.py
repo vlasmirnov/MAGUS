@@ -81,8 +81,8 @@ def readFromStockholm(filePath, includeInsertions = False):
     
     return sequences
 
-def writeFasta(alignment, filePath, taxa = None):
-        with open(filePath, 'w') as textFile:
+def writeFasta(alignment, filePath, taxa = None, append = False):
+        with open(filePath, 'a' if append else 'w') as textFile:
             if taxa is not None:
                 for tag in taxa:
                     if tag in alignment:

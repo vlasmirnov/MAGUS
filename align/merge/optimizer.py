@@ -14,7 +14,6 @@ def optimizeTrace(graph):
     
     if Configs.graphTraceOptimize:
         Configs.log("Optimization pass..")
-        graph.clusters = graph.addSingletonClusters(graph.clusters)
         graph.clusters = optimizeClusters(graph, graph.clusters)
         Configs.log("Optimized the trace to {} clusters with a total cost of {}".format(len(graph.clusters), graph.computeClusteringCost(graph.clusters)))
     else:

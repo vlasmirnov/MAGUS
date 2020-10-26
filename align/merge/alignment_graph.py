@@ -4,17 +4,21 @@ Created on Apr 14, 2020
 @author: Vlad
 '''
 
+import os
 
-from helpers import sequenceutils
+from helpers import sequenceutils, tasks
 from configuration import Configs
 
 class AlignmentGraph:
     
     
-    def __init__(self, workingDir):
-        self.workingDir = workingDir
-        self.subsetPaths = None
-        self.graphPath = None
+    def __init__(self, task):
+        self.workingDir = os.path.join(task.workingDir, "graph")
+        self.graphPath = os.path.join(self.workingDir, "graph.txt")
+        if not os.path.exists(self.workingDir):
+            os.makedirs(self.workingDir)
+        
+        self.subalignmentPaths = None
         self.clusterPath = None
         
         self.unalignment = {}
@@ -32,17 +36,9 @@ class AlignmentGraph:
         self.clusters = []
         
         
-    def loadSubalignments(self, subsetPaths):
-        '''
-        self.subalignments = []
-        for filePath in subsetPaths:
-            baseName = os.path.basename(filePath)
-            cleanFilePath = os.path.join(Configs.workingDir, "clean_{}".format(baseName))
-            sequenceutils.cleanGapColumns(filePath, cleanFilePath)
-            self.subalignments.append(sequenceutils.readFromFasta(cleanFilePath))
-        '''
-        self.subsetPaths = subsetPaths
-        self.subalignments = [sequenceutils.readFromFasta(filePath) for filePath in subsetPaths]
+    def loadSubalignments(self, subalignmentPaths):
+        self.subalignmentPaths = subalignmentPaths
+        self.subalignments = [sequenceutils.readFromFasta(filePath) for filePath in subalignmentPaths]
         for i, subalignment in enumerate(self.subalignments):              
             for taxon in subalignment:
                 self.taxonSubalignmentMap[taxon] = i
@@ -129,48 +125,16 @@ class AlignmentGraph:
         finalAlignment = {}
         for subset in self.subalignments:
             for taxon in subset:
-                finalAlignment[taxon] = sequenceutils.Sequence(taxon, "")
+                finalAlignment[taxon] = sequenceutils.Sequence(taxon, ['-'] * len(self.clusters))
         
-        lastIdx = {}
-        for cluster in self.clusters:
+        for idx, cluster in enumerate(self.clusters):
             for b in cluster:
                 bsub, bpos = self.matSubPosMap[b]
-                bposlast = lastIdx.get(bsub, -1)
-                
-                for p in range(bposlast + 1, bpos):
-                    for i in range(len(self.subalignments)):
-                        for taxon in self.subalignments[i]:
-                            if i == bsub:
-                                finalAlignment[taxon].seq = finalAlignment[taxon].seq + self.subalignments[bsub][taxon].seq[p]
-                            else:
-                                finalAlignment[taxon].seq = finalAlignment[taxon].seq + '-'
-                
-                lastIdx[bsub] = bpos
-            
-            clusterSets = set()    
-            for b in cluster:
-                bsub, bpos = self.matSubPosMap[b]
-                clusterSets.add(bsub)
                 for taxon in self.subalignments[bsub]:
-                    finalAlignment[taxon].seq = finalAlignment[taxon].seq + self.subalignments[bsub][taxon].seq[bpos]
-                #lastIdx[bsub] = lastIdx[bsub] + 1
-            
-            for i in range(len(self.subalignments)):
-                if i not in clusterSets:
-                    for taxon in self.subalignments[i]:
-                        finalAlignment[taxon].seq = finalAlignment[taxon].seq + '-'
-                
-        
-        for bsub in range(len(self.subalignments)):
-            bposlast = lastIdx.get(bsub, -1)
-                        
-            for p in range(bposlast + 1, self.subalignmentLengths[bsub]):
-                for i in range(len(self.subalignments)):
-                    for taxon in self.subalignments[i]:
-                        if i == bsub:
-                            finalAlignment[taxon].seq = finalAlignment[taxon].seq + self.subalignments[bsub][taxon].seq[p]
-                        else:
-                            finalAlignment[taxon].seq = finalAlignment[taxon].seq + '-'        
+                    finalAlignment[taxon].seq[idx] = self.subalignments[bsub][taxon].seq[bpos]
+
+        for taxon in finalAlignment:
+            finalAlignment[taxon].seq = "".join(finalAlignment[taxon].seq)    
                                 
         sequenceutils.writeFasta(finalAlignment, filePath)  
         Configs.log("Wrote final output alignment to {}".format(filePath))
@@ -204,11 +168,11 @@ class AlignmentGraph:
     
         return int(cutCost/2) 
     
-    def addSingletonClusters(self, clusters):
+    def addSingletonClusters(self):
         newClusters = []
         
         lastIdx = list(self.subsetMatrixIdx) 
-        for cluster in clusters:
+        for cluster in self.clusters:
             for a in cluster:
                 #print(a)
                 asub, apos = self.matSubPosMap[a]                
@@ -219,8 +183,118 @@ class AlignmentGraph:
         for i in range(len(lastIdx)):
             for node in range(lastIdx[i], self.subsetMatrixIdx[i] + self.subalignmentLengths[i]):
                 newClusters.append([node])
+        self.clusters = newClusters
         return newClusters
+    
+    def cheaterAlignment(self, filePath):    
+        for s, subset in enumerate(self.subalignments):
+            subsetAlignPath = os.path.join(self.workingDir, os.path.basename(self.subalignmentPaths[s]))
+            locker = os.path.join(self.workingDir, "lock_{}".format(os.path.basename(subsetAlignPath)))
+            try:
+                with open(locker, 'x') as subfile:
+                    pass
+            except:
+                continue
+            
+            if os.path.exists(subsetAlignPath):
+                finalAlignment = sequenceutils.readFromFasta(subsetAlignPath, removeDashes=False)
+            else:
+                Configs.log("Parsing subset {}..".format(os.path.basename(self.subalignmentPaths[s])))
+                finalAlignment = {}
+                for taxon in subset:
+                    finalAlignment[taxon] = sequenceutils.Sequence(taxon, [])
+                
+                lastIdx = [0 for i in self.subsetMatrixIdx]
+                curLen = [0 for i in self.subsetMatrixIdx]
+                for idx, cluster in enumerate(self.clusters):
+                    
+                    newLen = 0
+                    for b in cluster:
+                        bsub, bpos = self.matSubPosMap[b]
+                        if curLen[bsub] + bpos - lastIdx[bsub] > newLen:
+                            newLen = curLen[bsub] + bpos - lastIdx[bsub]
+                            
+                    for b in cluster:   
+                        bsub, bpos = self.matSubPosMap[b]     
+                        if bsub == s:
+                            for taxon in self.subalignments[bsub]:
+                                for n in range(lastIdx[bsub], bpos):
+                                    finalAlignment[taxon].seq.append(self.subalignments[bsub][taxon].seq[n])
+                                for n in range(newLen - (curLen[bsub] + bpos - lastIdx[bsub])):
+                                    finalAlignment[taxon].seq.append('-')
+                                finalAlignment[taxon].seq.append(self.subalignments[bsub][taxon].seq[bpos])
+                        lastIdx[bsub] = bpos+1
+                        curLen[bsub] = newLen+1
+                
+                newLen = 0
+                for bsub, bpos in enumerate(self.subalignmentLengths): 
+                    if curLen[bsub] + bpos - lastIdx[bsub]  > newLen:
+                        newLen = curLen[bsub] + bpos - lastIdx[bsub]
+                
+                for taxon in subset:
+                    for n in range(lastIdx[s], self.subalignmentLengths[s]):
+                        finalAlignment[taxon].seq.append(self.subalignments[s][taxon].seq[n])
+                    for n in range(newLen - (curLen[s] + self.subalignmentLengths[s] - lastIdx[s])):
+                        finalAlignment[taxon].seq.append('-')
+                        
+                for taxon in finalAlignment:
+                    finalAlignment[taxon].seq = "".join(finalAlignment[taxon].seq) 
+                sequenceutils.writeFasta(finalAlignment, subsetAlignPath)
+            
+                  
+            tasks.lockFiles(os.path.join(self.workingDir, "output.lock")) 
+            Configs.log("Writing in alignment of length {}".format(len(next(iter(finalAlignment.values())).seq)))
+            sequenceutils.writeFasta(finalAlignment, filePath, append = True) 
+            tasks.unlockFiles(os.path.join(self.workingDir, "output.lock"))
+                
+             
+        Configs.log("Wrote final output alignment to {}".format(filePath))
+    
+    '''
+    def cheaterAlignment(self, filePath):    
+        finalAlignment = {}
+        for subset in self.subalignments:
+            for taxon in subset:
+                finalAlignment[taxon] = sequenceutils.Sequence(taxon, [])
         
+        lastIdx = [0 for i in self.subsetMatrixIdx]
+        for idx, cluster in enumerate(self.clusters):
+            Configs.log("Parsing cluster {}..".format(idx))
+            maxDist = 0
+            for b in cluster:
+                bsub, bpos = self.matSubPosMap[b]
+                if bpos - lastIdx[bsub] > maxDist:
+                    maxDist = bpos - lastIdx[bsub]
+                    
+            for b in cluster:   
+                bsub, bpos = self.matSubPosMap[b]     
+                for taxon in self.subalignments[bsub]:
+                    for n in range(lastIdx[bsub], bpos):
+                        finalAlignment[taxon].seq.append(self.subalignments[bsub][taxon].seq[n])
+                    for n in range(maxDist - bpos + lastIdx[bsub]):
+                        finalAlignment[taxon].seq.append('-')
+                    finalAlignment[taxon].seq.append(self.subalignments[bsub][taxon].seq[bpos])
+                lastIdx[bsub] = bpos+1
+        
+        maxDist = 0
+        for bsub, bpos in enumerate(self.subalignmentLengths): 
+            if bpos - lastIdx[bsub] > maxDist:
+                maxDist = bpos - lastIdx[bsub]
+        
+        for bsub, bpos in enumerate(self.subalignmentLengths):   
+            for taxon in self.subalignments[bsub]:
+                for n in range(lastIdx[bsub], bpos):
+                    finalAlignment[taxon].seq.append(self.subalignments[bsub][taxon].seq[n])
+                for n in range(maxDist - bpos + lastIdx[bsub]):
+                    finalAlignment[taxon].seq.append('-')
+
+
+        for taxon in finalAlignment:
+            finalAlignment[taxon].seq = "".join(finalAlignment[taxon].seq)    
+                                
+        sequenceutils.writeFasta(finalAlignment, filePath)  
+        Configs.log("Wrote final output alignment to {}".format(filePath))
+    '''    
     '''
     def plotClusterHistogram(self, clusters, numBins, outputFile):
         import matplotlib.pyplot as plt
