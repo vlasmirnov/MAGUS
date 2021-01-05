@@ -5,6 +5,7 @@ Created on Sep 22, 2018
 '''
 
 import string
+import os
 
 class Sequence:
     def __init__(self, tag, seq):
@@ -158,3 +159,46 @@ def inferDataType(filePath):
         dataType = "protein"
           
     return dataType
+
+def readSequenceLengthFromFasta(filePath):
+    with open(filePath) as f:
+        length = 0
+        readSequence = False
+        for line in f:
+            line = line.strip()
+            if line.startswith('>'):
+                if not readSequence:
+                    readSequence = True
+                    continue
+                else:
+                    return length
+            else:
+                length = length + len(line)
+
+def countGaps(alignFile):
+    counts = []
+    currentSequence = ""
+
+    with open(alignFile) as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith('>'): 
+                
+                if currentSequence is not None:
+                    if len(counts) == 0:
+                        counts = [0] * len(currentSequence)
+                    for i in range(len(counts)):
+                        if currentSequence[i] == '-':
+                            counts[i] = counts[i] + 1
+                                             
+                currentSequence = ""
+            else:
+                currentSequence = currentSequence + line
+        if currentSequence is not None:
+            if len(counts) == 0:
+                counts = [0] * len(currentSequence)
+            for i in range(len(counts)):
+                if currentSequence[i] == '-':
+                    counts[i] = counts[i] + 1
+    
+    return counts

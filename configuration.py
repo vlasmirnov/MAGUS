@@ -14,6 +14,7 @@ class Configs:
     workingDir = None
     sequencesPath = None
     subsetPaths = None
+    subalignmentPaths = None
     backbonePaths = None
     guideTreePath = None
     outputPath = None
@@ -35,6 +36,8 @@ class Configs:
     mafftRuns = 10
     mafftSize = 200
     mclInflationFactor = 4
+    
+    compression = "none"
     
     mafftPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mafft/mafft")
     mclPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mcl/bin/mcl")
@@ -77,14 +80,14 @@ def buildConfigs(args):
     Configs.sequencesPath = os.path.abspath(args.sequences) if args.sequences is not None else Configs.sequencesPath
     Configs.guideTreePath = os.path.abspath(args.guidetree) if args.guidetree is not None else Configs.guideTreePath
     
-    Configs.subsetPaths = []
+    Configs.subalignmentPaths = []
     for p in args.subalignments:
         path = os.path.abspath(p)
         if os.path.isdir(path):
             for filename in os.listdir(path):
-                Configs.subsetPaths.append(os.path.join(path, filename))
+                Configs.subalignmentPaths.append(os.path.join(path, filename))
         else:
-            Configs.subsetPaths.append(path)
+            Configs.subalignmentPaths.append(path)
     
     Configs.backbonePaths = []
     for p in args.backbones:
@@ -106,7 +109,7 @@ def buildConfigs(args):
     Configs.decompositionSkeletonSize = args.decompskeletonsize
     Configs.dataType = args.datatype
     
-    Configs.graphBuildMethod = args.graphbuildmethod
+    Configs.graphBuildMethod = args.graphbuildmethod #if len(Configs.backbonePaths) == 0 else "user"
     Configs.graphBuildHmmExtend = args.graphbuildhmmextend.lower() == "true"
     Configs.graphBuildRestrict = args.graphbuildrestrict.lower() == "true"
     Configs.graphClusterMethod = args.graphclustermethod
@@ -116,5 +119,7 @@ def buildConfigs(args):
     Configs.mafftRuns = args.mafftruns
     Configs.mafftSize = args.mafftsize
     Configs.mclInflationFactor = args.inflationfactor
+    
+    Configs.compression = args.compression
     
     Configs.logPath = os.path.join(Configs.workingDir, "log.txt")    

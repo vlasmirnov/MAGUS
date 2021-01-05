@@ -10,17 +10,18 @@ import time
 import random
 
 from align.decompose import decomposer
-from helpers import sequenceutils, treeutils, hmmutils, tasks
+from helpers import sequenceutils, treeutils, hmmutils
+from tasks import task
 from tools import external_tools
 from configuration import Configs
 
-def buildSubsetsKMH(subsetsDir, sequencesPath):
+def buildSubsetsKMH(context, subsetsDir):
     tempDir = os.path.join(subsetsDir, "initial_tree")
     
-    Configs.log("Building KMH decomposition on {} with skeleton size {}/{}..".format(sequencesPath, Configs.decompositionSkeletonSize, 1000))
+    Configs.log("Building KMH decomposition on {} with skeleton size {}/{}..".format(context.sequencesPath, Configs.decompositionSkeletonSize, 1000))
     time1 = time.time()
     
-    initialTreePath, initialAlignPath, unusedTaxa = buildInitialTreeAlign(tempDir, sequencesPath) 
+    initialTreePath, initialAlignPath, unusedTaxa = buildInitialTreeAlign(tempDir, context.sequencesPath) 
     
     if len(unusedTaxa) == 0:
         subsetPaths = treeutils.decomposeGuideTree(tempDir, initialAlignPath, initialTreePath, Configs.decompositionMaxSubsetSize, Configs.decompositionMaxNumSubsets)
@@ -29,10 +30,10 @@ def buildSubsetsKMH(subsetsDir, sequencesPath):
         if not os.path.exists(subsetSeedDir):
             os.makedirs(subsetSeedDir)
         subsetSeedPaths = treeutils.decomposeGuideTree(subsetSeedDir, initialAlignPath, initialTreePath, None, Configs.decompositionMaxNumSubsets)
-        subsetPaths = reassignTaxons(subsetsDir, subsetSeedPaths, sequencesPath, unusedTaxa)
+        subsetPaths = reassignTaxons(subsetsDir, subsetSeedPaths, context.unalignedSequences, unusedTaxa)
     
     time2 = time.time()
-    Configs.log("Built KMH decomposition on {} in {} sec..".format(sequencesPath, time2-time1))
+    Configs.log("Built KMH decomposition on {} in {} sec..".format(context.sequencesPath, time2-time1))
 
     return subsetPaths
 
@@ -53,8 +54,7 @@ def buildInitialTreeAlign(tempDir, sequencesPath):
 
     return outputTreePath, outputAlignPath, unusedTaxa
 
-def reassignTaxons(subsetsDir, subsetSeedPaths, sequencesPath, unusedTaxa):
-    sequences = sequenceutils.readFromFasta(sequencesPath, True)
+def reassignTaxons(subsetsDir, subsetSeedPaths, sequences, unusedTaxa):
     unusedPath = os.path.join(subsetsDir, "unassigned_sequences.txt")
     sequenceutils.writeFasta(sequences, unusedPath, unusedTaxa)
     
@@ -65,24 +65,22 @@ def reassignTaxons(subsetsDir, subsetSeedPaths, sequencesPath, unusedTaxa):
             os.makedirs(hmmDir)
         hmmMap[subsetPath] = os.path.join(hmmDir, "hmm_model.txt") 
     hmmTasks = hmmutils.buildHmms(hmmMap)
-    tasks.submitTasks(hmmTasks)
-    tasks.awaitTasks(hmmTasks)
-    hmmPaths = [task.outputFile for task in hmmTasks]
+    task.submitTasks(hmmTasks)
+    task.awaitTasks(hmmTasks)
+    hmmPaths = [t.outputFile for t in hmmTasks]
     
     scoreFileHmmFileMap = {}
     scoreTasks = hmmutils.buildHmmScores(hmmPaths, unusedPath, scoreFileHmmFileMap)
-    tasks.submitTasks(scoreTasks) 
-    #tasks.awaitTasks(scoreTasks)
-    #subsetScores = hmmutils.readHmmScores([t.outputFile for t in scoreTasks])
+    task.submitTasks(scoreTasks) 
     
     bestScores = {}
     taxonHmmMap = {}
-    for task in tasks.asCompleted(scoreTasks):
-        subsetScores = hmmutils.readSearchFile(task.outputFile)
+    for scoreTask in task.asCompleted(scoreTasks):
+        subsetScores = hmmutils.readSearchFile(scoreTask.outputFile)
         for taxon, scores in subsetScores.items():
             if scores[1] > bestScores.get(taxon, -float("inf")):
                 bestScores[taxon] = scores[1]
-                taxonHmmMap[taxon] = scoreFileHmmFileMap[task.outputFile]
+                taxonHmmMap[taxon] = scoreFileHmmFileMap[scoreTask.outputFile]
     
     subsetTaxons = {file : [] for file in hmmPaths}
     for taxon, hmmPath in taxonHmmMap.items():

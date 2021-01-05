@@ -15,7 +15,7 @@ def rgSearch(graph):
     k = len(graph.subalignments)
     lowerBound = [graph.subsetMatrixIdx[i] for i in range(k)]
     upperBound = [graph.subsetMatrixIdx[i] + graph.subalignmentLengths[i] for i in range(k)] 
-    return rgCluster(graph, lowerBound, upperBound, True)
+    graph.clusters = rgCluster(graph, lowerBound, upperBound, True)
 
 def rgCluster(graph, lowerBound, upperBound, enforceTrace = True):
     clusters = []

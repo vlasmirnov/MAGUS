@@ -10,12 +10,13 @@ import time
 import random
 
 from align.decompose import decomposer
-from helpers import sequenceutils, hmmutils, treeutils, tasks
+from helpers import sequenceutils, hmmutils, treeutils
+from tasks import task
 from tools import external_tools
 from configuration import Configs
 
 
-def buildPastaInitialTree(subsetsDir, sequencesPath):
+def buildPastaInitialTree(context, subsetsDir):
     tempDir = os.path.join(subsetsDir, "initial_tree")
     outputTreePath = os.path.join(tempDir, "initial_tree.tre")
     outputAlignPath = os.path.join(tempDir, "initial_align.txt")
@@ -26,58 +27,24 @@ def buildPastaInitialTree(subsetsDir, sequencesPath):
         shutil.rmtree(tempDir)
     os.makedirs(tempDir)
     
-    Configs.log("Building PASTA-style initial tree on {} with skeleton size {}..".format(sequencesPath, Configs.decompositionSkeletonSize))
+    Configs.log("Building PASTA-style initial tree on {} with skeleton size {}..".format(context.sequencesPath, Configs.decompositionSkeletonSize))
     time1 = time.time() 
-    
-    align = sequenceutils.readFromFasta(sequencesPath)
-    taxa = list(align.keys())
+
+    taxa = list(context.unalignedSequences.keys())
     if len(taxa) >= 100000:
-        external_tools.runMafftGuideTree(sequencesPath, tempDir, outputTreePath, Configs.numCores).run()
-        treeutils.convertMafftGuideTree(outputTreePath, taxa)
-        
-        #outputTreeMafftPath = os.path.join(tempDir, "initial_tree_mafft.tre")
-        #external_tools.runMafftGuideTree(sequencesPath, tempDir, outputTreeMafftPath, Configs.numCores).run()
-        #treeutils.convertMafftGuideTree(outputTreeMafftPath, taxa)
-        
-        #initialAlign, unused = buildInitialAlignment(sequencesPath, tempDir, Configs.decompositionSkeletonSize, None)
-        #sequenceutils.writeFasta(initialAlign, outputAlignPath)    
-        #external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath, "fastest", intree=outputTreeMafftPath).run()
-    else:
-        initialAlign, unused = buildInitialAlignment(sequencesPath, tempDir, Configs.decompositionSkeletonSize, None)
-        sequenceutils.writeFasta(initialAlign, outputAlignPath)    
-        if len(initialAlign) >= 50000:
-            external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath, "fastest").run()
-        elif len(initialAlign) >= 20000:
-            external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath, "faster").run()
-        elif len(initialAlign) >= 5000:
-            external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath, "fast").run()
-        else:
-            external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath, "normal").run()
-    
-    '''
-    align = sequenceutils.readFromFasta(sequencesPath)
-    taxa = list(align.keys())
-    if len(taxa) >= 10000:
-        external_tools.runMafftGuideTree(sequencesPath, tempDir, outputTreePath, Configs.numCores).run()
+        external_tools.runMafftGuideTree(context.sequencesPath, tempDir, outputTreePath, Configs.numCores).run()
         treeutils.convertMafftGuideTree(outputTreePath, taxa)
     else:
-        initialAlign, unused = buildInitialAlignment(sequencesPath, tempDir, Configs.decompositionSkeletonSize, None)
+        initialAlign, unused = buildInitialAlignment(context.unalignedSequences, tempDir, Configs.decompositionSkeletonSize, None)
         sequenceutils.writeFasta(initialAlign, outputAlignPath)    
-        if len(initialAlign) >= 10000:
-            external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath, "fastest").run()
-        elif len(initialAlign) >= 5000:
-            external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath, "fast").run()
-        else:
-            external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath, "normal").run()
-    '''
-    
+        external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath, "fast").run()
     
     time2 = time.time()
-    Configs.log("Built initial tree on {} in {} sec..".format(sequencesPath, time2-time1))
+    Configs.log("Built initial tree on {} in {} sec..".format(context.sequencesPath, time2-time1))
     
     return outputTreePath, outputAlignPath
 
-def buildInitialAlignment(sequencesPath, tempDir, skeletonSize, initialAlignSize):
+def buildInitialAlignment(sequences, tempDir, skeletonSize, initialAlignSize):
     skeletonPath = os.path.join(tempDir, "skeleton_sequences.txt")
     skeletonAlignPath = os.path.join(tempDir, "skeleton_align.txt") 
     queriesPath = os.path.join(tempDir, "queries.txt") 
@@ -87,7 +54,6 @@ def buildInitialAlignment(sequencesPath, tempDir, skeletonSize, initialAlignSize
     if not os.path.exists(hmmDir):
         os.makedirs(hmmDir)
     
-    sequences = sequenceutils.readFromFasta(sequencesPath, True)
     if initialAlignSize is None or initialAlignSize > len(sequences):
         initialAlignSize = len(sequences)
     
@@ -104,9 +70,9 @@ def buildInitialAlignment(sequencesPath, tempDir, skeletonSize, initialAlignSize
         sequenceutils.writeFasta(sequences, queriesPath, remainingTaxa)    
         hmmutils.buildHmmOverAlignment(skeletonAlignPath, hmmPath).run()
         hmmTasks = hmmutils.hmmAlignQueries(hmmPath, queriesPath)
-        tasks.submitTasks(hmmTasks)
-        for task in tasks.asCompleted(hmmTasks):
-            hmmutils.mergeHmmAlignments([task.outputFile], hmmAlignPath, includeInsertions=False)
+        task.submitTasks(hmmTasks)
+        for hmmTask in task.asCompleted(hmmTasks):
+            hmmutils.mergeHmmAlignments([hmmTask.outputFile], hmmAlignPath, includeInsertions=False)
         #hmmutils.combineHmmAlignments([t.outputFile for t in hmmTasks], hmmAlignPath, includeInsertions=False)
         hmmAlign = sequenceutils.readFromFasta(hmmAlignPath)
         initialAlign.update(hmmAlign)

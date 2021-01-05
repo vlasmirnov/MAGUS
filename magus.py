@@ -11,7 +11,7 @@ import traceback
 
 from align.aligner import mainAlignmentTask
 from configuration import buildConfigs, Configs
-from helpers import tasks
+from tasks import manager
 
 def main():   
     startTime = time.time()
@@ -20,13 +20,13 @@ def main():
     Configs.log("MAGUS was run with: {}".format(" ".join(sys.argv)))
     
     try:
-        tasks.startTaskManager()
+        manager.startTaskManager()
         mainAlignmentTask()
     except:
         Configs.log("MAGUS aborted with an exception..")
         Configs.log(traceback.format_exc())
     finally:
-        tasks.stopTaskManager()
+        manager.stopTaskManager()
     
     endTime = time.time()
     Configs.log("MAGUS finished in {} seconds..".format(endTime-startTime))
@@ -109,6 +109,9 @@ def parseArgs():
     
     parser.add_argument("-f", "--inflationfactor", type=float,
                         help="MCL inflation factor", required=False, default=4)
+    
+    parser.add_argument("-c", "--compression", type=str,
+                        help="Alignment compression mode (none, singletons, tetris)", required=False, default="none")
        
     return parser.parse_args()
 

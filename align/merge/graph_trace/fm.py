@@ -23,11 +23,7 @@ def fmAlgorithm(graph):
         graph.buildNodeEdgeDataStructureFromClusters()
     clusters, totalCost, cuts = fmPartition(graph, lowerBound, upperBound)
     
-    #Configs.log("Final clusters:")
-    #for cluster in clusters:
-    #    Configs.log("    {}".format(cluster)) 
-    
-    return clusters
+    graph.clusters = clusters
                     
 def fmPartitionWithCuts(graph, lowerBound, upperBound, cuts):
     allCuts = [lowerBound] + cuts + [upperBound]

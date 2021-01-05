@@ -14,20 +14,16 @@ from align.merge.graph_trace.tracer import findTrace
 from align.merge.optimizer import optimizeTrace
 from configuration import Configs
 
-def mergeSubalignments(task):
-    Configs.log("Merging {} subaligments..".format(len(task.subalignmentPaths)))
+def mergeSubalignments(context):
+    Configs.log("Merging {} subaligments..".format(len(context.subalignmentPaths)))
     time1 = time.time()  
-        
-    buildGraph(task)
-    clusterGraph(task.graph)
-    findTrace(task.graph)
     
-    if max(task.graph.subalignmentLengths) > 10000:
-        task.graph.cheaterAlignment(task.outputFile)
-    else:
-        task.graph.addSingletonClusters()
-        optimizeTrace(task.graph)
-        task.graph.clustersToAlignment(task.outputFile)
+    buildGraph(context)
+    clusterGraph(context.graph)
+    findTrace(context.graph)
+    optimizeTrace(context.graph)
+    context.graph.clustersToPackedAlignment()    
+    context.graph.writeUnpackedAlignment(context.outputFile)
     
     time2 = time.time()  
-    Configs.log("Merged {} subalignments into {} in {} sec..".format(len(task.subalignmentPaths), task.outputFile, time2-time1))
+    Configs.log("Merged {} subalignments into {} in {} sec..".format(len(context.subalignmentPaths), context.outputFile, time2-time1))

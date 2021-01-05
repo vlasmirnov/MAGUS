@@ -16,7 +16,7 @@ def rgFastSearch(graph):
     lowerBound = [graph.subsetMatrixIdx[i] for i in range(k)]
     upperBound = [graph.subsetMatrixIdx[i] + graph.subalignmentLengths[i] for i in range(k)] 
     cuts = rgFastCluster(graph, lowerBound, upperBound, True)
-    return cutsToClusters(graph, cuts)
+    graph.clusters = cutsToClusters(graph, cuts)
 
 def rgFastCluster(graph, lowerBound, upperBound, enforceTrace = True):
     initialCuts = initialSplit(graph, lowerBound, upperBound, enforceTrace)

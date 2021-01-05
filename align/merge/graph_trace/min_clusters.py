@@ -173,7 +173,7 @@ def minClustersSearch(graph):
                 foundGood = True
                 break
                     
-    return orderedClusters
+    graph.clusters = orderedClusters
 
 def developState(state, graph, aggression, greedy, crossed, subsetClusters, clusterPositions):
     heuristic, numOrdered, numLeft, pairsLeft, counter, queueIdxs, clusterBreaks, maximalCut, newClusterBreaks, safeFrontier  = state

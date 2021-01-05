@@ -26,7 +26,7 @@ def mwtGreedySearch(graph):
     state = MwtSearchState()
     state.frontier = list(lowerBound)    
     clusters, totalCost, cycles = greedySearch(graph, state, context)
-    return clusters
+    graph.clusters = clusters
 
 def mwtSearch(graph):
     Configs.log("Finding graph trace with MWT heuristic search..")
@@ -41,7 +41,7 @@ def mwtSearch(graph):
         graph.buildNodeEdgeDataStructureFromClusters()
     
     clusters, totalCost = mwtHeuristicSearch(graph, lowerBound, upperBound)
-    return clusters
+    graph.clusters = clusters
     
 def mwtHeuristicSearch(graph, lowerBound, upperBound):  
     context = MwtSearchContext(lowerBound, upperBound)
