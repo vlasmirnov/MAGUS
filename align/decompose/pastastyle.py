@@ -35,8 +35,7 @@ def buildPastaInitialTree(context, subsetsDir):
         external_tools.runMafftGuideTree(context.sequencesPath, tempDir, outputTreePath, Configs.numCores).run()
         treeutils.convertMafftGuideTree(outputTreePath, taxa)
     else:
-        initialAlign, unused = buildInitialAlignment(context.unalignedSequences, tempDir, Configs.decompositionSkeletonSize, None)
-        sequenceutils.writeFasta(initialAlign, outputAlignPath)    
+        buildInitialAlignment(context.unalignedSequences, tempDir, Configs.decompositionSkeletonSize, None, outputAlignPath)
         external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath, "fast").run()
     
     time2 = time.time()
@@ -44,13 +43,12 @@ def buildPastaInitialTree(context, subsetsDir):
     
     return outputTreePath, outputAlignPath
 
-def buildInitialAlignment(sequences, tempDir, skeletonSize, initialAlignSize):
+def buildInitialAlignment(sequences, tempDir, skeletonSize, initialAlignSize, outputAlignPath):
     skeletonPath = os.path.join(tempDir, "skeleton_sequences.txt")
-    skeletonAlignPath = os.path.join(tempDir, "skeleton_align.txt") 
     queriesPath = os.path.join(tempDir, "queries.txt") 
     hmmDir = os.path.join(tempDir, "skeleton_hmm")
     hmmPath = os.path.join(hmmDir, "hmm_model.txt")
-    hmmAlignPath = os.path.join(tempDir, "queries_align.txt")
+    initialInsertPath = os.path.join(tempDir, "initial_insert_align.txt")
     if not os.path.exists(hmmDir):
         os.makedirs(hmmDir)
     
@@ -63,18 +61,14 @@ def buildInitialAlignment(sequences, tempDir, skeletonSize, initialAlignSize):
     remainingTaxa, unusedTaxa = remainingTaxa[:additional], remainingTaxa[additional:]
     
     sequenceutils.writeFasta(sequences, skeletonPath, skeletonTaxa)
-    external_tools.runMafft(skeletonPath, None, tempDir, skeletonAlignPath, Configs.numCores).run()
-    initialAlign = sequenceutils.readFromFasta(skeletonAlignPath)
+    external_tools.runMafft(skeletonPath, None, tempDir, outputAlignPath, Configs.numCores).run()
     
     if len(remainingTaxa) > 0:
         sequenceutils.writeFasta(sequences, queriesPath, remainingTaxa)    
-        hmmutils.buildHmmOverAlignment(skeletonAlignPath, hmmPath).run()
+        hmmutils.buildHmmOverAlignment(outputAlignPath, hmmPath).run()
         hmmTasks = hmmutils.hmmAlignQueries(hmmPath, queriesPath)
         task.submitTasks(hmmTasks)
         for hmmTask in task.asCompleted(hmmTasks):
-            hmmutils.mergeHmmAlignments([hmmTask.outputFile], hmmAlignPath, includeInsertions=False)
-        #hmmutils.combineHmmAlignments([t.outputFile for t in hmmTasks], hmmAlignPath, includeInsertions=False)
-        hmmAlign = sequenceutils.readFromFasta(hmmAlignPath)
-        initialAlign.update(hmmAlign)
-    return initialAlign, unusedTaxa
-    
+            hmmutils.mergeHmmAlignments([hmmTask.outputFile], outputAlignPath, includeInsertions=False)
+            if Configs.graphBuildMethod == "initial":
+                hmmutils.mergeHmmAlignments([hmmTask.outputFile], initialInsertPath, includeInsertions=True)

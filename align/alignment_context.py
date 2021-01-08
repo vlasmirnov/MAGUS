@@ -7,6 +7,7 @@ Created on Dec 4, 2020
 import os
 from helpers import sequenceutils
 from tasks import task
+from configuration import Configs
 
 class AlignmentContext:
     
@@ -20,10 +21,18 @@ class AlignmentContext:
         self.guideTreePath = None
         
         self.unalignedSequences = None
-        self.subsetTaxonMap = {}
+        #self.taxa = []
+        self.subsets = []
+        self.subalignments = []
         self.taxonSubsetMap = {}
+        self.taxonSubalignmentMap = {}
+                
+        self.backboneTaxa = {}
+        self.backboneExtend = set()
+        self.backboneSubalignment = {}
         
         self.subalignmentTasks = []
+        self.backboneTasks = []
         self.graph = None
         
         for attr in kwargs:
@@ -32,15 +41,43 @@ class AlignmentContext:
         if not os.path.exists(self.workingDir):
             os.makedirs(self.workingDir)
     
+    def awaitSubalignments(self):
+        task.awaitTasks(self.subalignmentTasks)
+    
     def initializeSequences(self):
         self.unalignedSequences = {}
         for i, subsetPath in enumerate(self.subsetPaths):
-            subset = sequenceutils.readFromFasta(subsetPath, removeDashes=True)
-            self.unalignedSequences.update(subset)
-            self.subsetTaxonMap[i] = []
-            for taxon in subset:
-                self.taxonSubsetMap[taxon] = i
-                self.subsetTaxonMap[i].append(taxon)
+            self.subsets.append([])
+            subset = sequenceutils.readFromFastaOrdered(subsetPath, removeDashes=True)
+            for sequence in subset:
+                self.unalignedSequences[sequence.tag] = sequence
+                self.taxonSubsetMap[sequence.tag] = i
+                self.subsets[i].append(sequence.tag)
+        
+        if Configs.constrain:
+            self.subalignments = self.subsets
+            self.taxonSubalignmentMap = self.taxonSubsetMap
+        else:
+            for s in self.subsets:
+                for taxon in s:
+                    self.taxonSubalignmentMap[taxon] = len(self.subalignments)
+                    self.subalignments.append([taxon])
+                
+    def initializeBackboneSequenceMapping(self):
+        if len(self.backboneTaxa) == 0:
+            backboneSubsetTaxonMap = {i : subset for i, subset in enumerate(self.subsets)}
+        else:
+            backboneSubsetTaxonMap = {}
+            for taxon in self.backboneTaxa:
+                i = self.taxonSubsetMap[taxon]
+                backboneSubsetTaxonMap[i] = backboneSubsetTaxonMap.get(i, [])
+                backboneSubsetTaxonMap[i].append(taxon) 
+        
+        if Configs.constrain:
+            for i, subalignPath in enumerate(self.subalignmentPaths):
+                subalignment = sequenceutils.readFromFasta(subalignPath, removeDashes=False)
+                for taxon in backboneSubsetTaxonMap.get(i, []):
+                    self.backboneSubalignment[taxon] = subalignment[taxon]
+        else:
+            self.backboneSubalignment = self.unalignedSequences
     
-    def awaitSubalignments(self):
-        task.awaitTasks(self.subalignmentTasks)

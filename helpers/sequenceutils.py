@@ -4,8 +4,6 @@ Created on Sep 22, 2018
 @author: Vlad
 '''
 
-import string
-import os
 
 class Sequence:
     def __init__(self, tag, seq):
@@ -29,9 +27,26 @@ def readFromFasta(filePath, removeDashes = False):
                 currentSequence.seq = currentSequence.seq + line
 
     print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..")
-                                
     return sequences
 
+def readFromFastaOrdered(filePath, removeDashes = False):
+    sequences = []
+    currentSequence = None
+
+    with open(filePath) as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith('>'):                    
+                tag = line[1:]
+                currentSequence = Sequence(tag, "")
+                sequences.append(currentSequence)
+            else :
+                if(removeDashes):
+                    line = line.replace("-", "")
+                currentSequence.seq = currentSequence.seq + line
+
+    print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..")
+    return sequences
 
 def readFromPhylip(filePath, removeDashes = False):
     sequences = {}    
@@ -55,8 +70,7 @@ def readFromPhylip(filePath, removeDashes = False):
                     sequences[tag] = Sequence(tag, seq)
                 
     
-    print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..")
-                                
+    print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..")                                
     return sequences
 
 #reads match columns only
@@ -78,8 +92,7 @@ def readFromStockholm(filePath, includeInsertions = False):
                 for c in seq:
                     #if includeInsertions or not (c == '.' or c in string.ascii_lowercase):
                     if includeInsertions or (c == c.upper() and c != '.'):
-                        sequences[key].seq = sequences[key].seq + c
-    
+                        sequences[key].seq = sequences[key].seq + c    
     return sequences
 
 def writeFasta(alignment, filePath, taxa = None, append = False):
@@ -174,6 +187,8 @@ def readSequenceLengthFromFasta(filePath):
                     return length
             else:
                 length = length + len(line)
+
+
 
 def countGaps(alignFile):
     counts = []

@@ -13,7 +13,7 @@ from configuration import Configs
 def mwtGreedySearch(graph):
     Configs.log("Finding graph trace with MWT greedy search..")
     
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     lowerBound = [graph.subsetMatrixIdx[i] for i in range(k)]
     upperBound = [graph.subsetMatrixIdx[i] + graph.subalignmentLengths[i] for i in range(k)] 
     
@@ -31,7 +31,7 @@ def mwtGreedySearch(graph):
 def mwtSearch(graph):
     Configs.log("Finding graph trace with MWT heuristic search..")
     
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     lowerBound = [graph.subsetMatrixIdx[i] for i in range(k)]
     upperBound = [graph.subsetMatrixIdx[i] + graph.subalignmentLengths[i] for i in range(k)] 
     
@@ -176,7 +176,7 @@ def greedySearch(graph, state, context):
     return result, state.cost, cycles
     
 def findCycleOrCluster(graph, state, context):    
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     
     curCluster = None
     clusters = []
@@ -238,7 +238,7 @@ def findCycleOrCluster(graph, state, context):
     return False, orderedClusters
     
 def findCycleOrClusterFromNode(graph, state, context, node):
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     i, pos = graph.matSubPosMap[node]
 
     stack = [node]
@@ -284,7 +284,7 @@ def findCycleOrClusterFromNode(graph, state, context, node):
     return False, list(clusterNodes)            
 
 def findPathBFS(graph, lowerBound, upperBound, removed, nodeA, nodeB):
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     asub, apos = graph.matSubPosMap[nodeA]
     bsub, bpos = graph.matSubPosMap[nodeB]
     #queue = deque([nodeA])

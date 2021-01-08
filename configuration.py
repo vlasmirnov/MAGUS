@@ -21,7 +21,7 @@ class Configs:
     dataType = None
     
     decompositionMaxNumSubsets = 25
-    decompositionMaxSubsetSize = 100
+    decompositionMaxSubsetSize = 50
     decompositionStrategy = "pastastyle"
     decompositionSkeletonSize = 300
     #decompositionKmhIterations = 1
@@ -37,7 +37,7 @@ class Configs:
     mafftSize = 200
     mclInflationFactor = 4
     
-    compression = "none"
+    constrain = True
     
     mafftPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mafft/mafft")
     mclPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mcl/bin/mcl")
@@ -120,6 +120,6 @@ def buildConfigs(args):
     Configs.mafftSize = args.mafftsize
     Configs.mclInflationFactor = args.inflationfactor
     
-    Configs.compression = args.compression
+    Configs.constrain = args.constrain.lower() == "true"
     
     Configs.logPath = os.path.join(Configs.workingDir, "log.txt")    

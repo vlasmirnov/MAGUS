@@ -7,7 +7,6 @@ Created on Apr 14, 2020
 import os
 import time
 import random
-import gc
 
 from align.merge.alignment_graph import AlignmentGraph
 from helpers import sequenceutils, hmmutils
@@ -32,20 +31,19 @@ def buildGraph(context):
     if os.path.exists(context.graph.graphPath):
         context.graph.readGraphFromFile(context.graph.graphPath)
     else:
-        context.graph.initializeBackboneSequenceMapping()
+        context.initializeBackboneSequenceMapping()
         buildMatrix(context)
         context.graph.writeGraphToFile(context.graph.graphPath)
        
-    gc.collect()   
     time2 = time.time()
     Configs.log("Built the alignment graph in {} sec..".format(time2-time1))
 
 def requestBackboneTasks(context):
     if len(context.backbonePaths) > 0:
         Configs.log("Using {} user-defined backbone files..".format(len(context.backbonePaths)))
-        context.graph.backbonePaths = context.backbonePaths
+        context.backbonePaths = context.backbonePaths
         for path in context.backbonePaths:
-            context.graph.backboneTaxa.update(sequenceutils.readFromFasta(path))
+            context.backboneTaxa.update(sequenceutils.readFromFasta(path))
     
     elif Configs.graphBuildMethod == "mafft":
         Configs.log("Using {} MAFFT backbones..".format(Configs.mafftRuns)) 
@@ -53,13 +51,16 @@ def requestBackboneTasks(context):
         
     elif Configs.graphBuildMethod == "subsethmm":
         Configs.log("Using {} HMM-extended subalignments as backbone files..".format(len(context.subalignmentPaths)))
-        context.graph.backbonePaths = context.subalignmentPaths
-        context.graph.backboneExtend.update(context.graph.backbonePaths)
+        context.backbonePaths = context.subalignmentPaths
+        context.backboneExtend.update(context.backbonePaths)
         
     elif Configs.graphBuildMethod == "initial":
         Configs.log("Using the initial decomposition alignment as the single backbone..")
-        initialAlignPath = os.path.join(context.workingDir, "decomposition", "initial_tree", "initial_align.txt")
-        context.graph.backbonePaths = [initialAlignPath]
+        initialAlignPath = os.path.join(context.workingDir, "decomposition", "initial_tree", "initial_insert_align.txt")
+        context.backbonePaths = [initialAlignPath]
+    
+    if not Configs.constrain and Configs.graphBuildMethod != "subsethmm":
+        context.backbonePaths.extend(context.subalignmentPaths)
 
 def requestMafftBackbones(context):
     numTaxa = max(1, int(Configs.mafftSize/len(context.subsetPaths)))
@@ -70,49 +71,52 @@ def requestMafftBackbones(context):
         if os.path.exists(alignedFile):
             Configs.log("Existing backbone file found: {}".format(alignedFile))
             backbone = sequenceutils.readFromFasta(alignedFile)
-            context.graph.backbonePaths.append(alignedFile)
+            context.backbonePaths.append(alignedFile)
         else:
             backbone = assignBackboneTaxa(context, numTaxa, unalignedFile)
             backboneTask = external_tools.buildMafftAlignment(unalignedFile, alignedFile)
-            #backboneTask.submitTask()
-            context.graph.backboneTasks.append(backboneTask)
+            context.backboneTasks.append(backboneTask)
             
         if Configs.graphBuildHmmExtend:
-            context.graph.backboneExtend.add(alignedFile)
+            context.backboneExtend.add(alignedFile)
         else:
-            context.graph.backboneTaxa.update(backbone)
-    task.submitTasks(context.graph.backboneTasks)    
+            context.backboneTaxa.update(backbone)
+    task.submitTasks(context.backboneTasks)    
                 
 def buildMatrix(context):
-    for backboneFile in context.graph.backbonePaths:
-        addAlignmentFileToGraph(context.graph, backboneFile)
+    addedBackbones = set()
+    for backboneTask in task.asCompleted(context.backboneTasks):
+        addAlignmentFileToGraph(context, backboneTask.outputFile)
+        addedBackbones.add(backboneTask.outputFile)
     
-    for backboneTask in task.asCompleted(context.graph.backboneTasks):
-        addAlignmentFileToGraph(context.graph, backboneTask.outputFile)
+    for backboneFile in context.backbonePaths:
+        if backboneFile not in addedBackbones:
+            addAlignmentFileToGraph(context, backboneFile)  
     
 def assignBackboneTaxa(context, numTaxa, unalignedFile):
     backbone = {}
-    for i, taxa in context.subsetTaxonMap.items():
-        random.shuffle(taxa)
-        for taxon in taxa[:numTaxa]:
+    for subset in context.subsets:
+        random.shuffle(subset)
+        for taxon in subset[:numTaxa]:
             backbone[taxon] = context.unalignedSequences[taxon]
     sequenceutils.writeFasta(backbone, unalignedFile)
     return backbone
     
-def addAlignmentFileToGraph(graph, alignedFile):
+def addAlignmentFileToGraph(context, alignedFile):
     Configs.log("Feeding backbone {} to the graph..".format(alignedFile))
     backboneAlign = sequenceutils.readFromFasta(alignedFile)  
-    alignmentLength = len(next(iter(backboneAlign.values())).seq)   
-    
-    if alignedFile in graph.backboneExtend:
-        extensionTasks = requestHmmExtensionTasks(graph, backboneAlign, alignedFile)
+    alignmentLength = len(next(iter(backboneAlign.values())).seq)
+     
+    if alignedFile in context.backboneExtend:
+        extensionTasks = requestHmmExtensionTasks(context, backboneAlign, alignedFile)
         task.submitTasks(extensionTasks)
         for extensionTask in task.asCompleted(extensionTasks):
             backboneAlign.update(sequenceutils.readFromStockholm(extensionTask.outputFile, includeInsertions=True))
     
-    alignmap = backboneToAlignMap(graph, backboneAlign, alignmentLength)
+    alignmap = backboneToAlignMap(context, backboneAlign, alignmentLength)
     Configs.log("Constructed backbone alignment map from {}".format(alignedFile))
     
+    graph = context.graph  
     with graph.matrixLock:
         for l in range(alignmentLength):  
             for a, avalue in alignmap[l].items():
@@ -127,14 +131,14 @@ def addAlignmentFileToGraph(graph, alignedFile):
                     graph.matrix[a][b] = graph.matrix[a].get(b,0) + avalue * bvalue         
     Configs.log("Fed backbone {} to the graph.".format(alignedFile))
 
-def backboneToAlignMap(graph, backboneAlign, alignmentLength):
+def backboneToAlignMap(context, backboneAlign, alignmentLength):
     alignmap = [{} for i in range(alignmentLength)]
     t = 0
     
     for taxon in backboneAlign:
-        subsetIdx = graph.context.taxonSubsetMap[taxon]
-        subsetseq = graph.backboneSubsetAlignment[taxon].seq
-        unalignedseq = graph.context.unalignedSequences[taxon].seq     
+        subsetIdx = context.taxonSubalignmentMap[taxon]
+        subsetseq = context.backboneSubalignment[taxon].seq
+        unalignedseq = context.unalignedSequences[taxon].seq     
         backboneseq = backboneAlign[taxon].seq   
         
         i = 0
@@ -152,7 +156,7 @@ def backboneToAlignMap(graph, backboneAlign, alignmentLength):
             if i == len(unalignedseq):
                 break
             if c == unalignedseq[i]:
-                position = int(graph.subsetMatrixIdx[subsetIdx] + posarray[i])
+                position = int(context.graph.subsetMatrixIdx[subsetIdx] + posarray[i])
                 alignmap[n][position] = alignmap[n].get(position, 0) + 1
             if c.upper() == unalignedseq[i]:
                 i = i + 1
@@ -163,18 +167,18 @@ def backboneToAlignMap(graph, backboneAlign, alignmentLength):
             
     return alignmap
         
-def requestHmmExtensionTasks(graph, backbone, alignedFile):
+def requestHmmExtensionTasks(context, backbone, alignedFile):
     baseName = os.path.basename(alignedFile)
-    hmmDir = os.path.join(graph.workingDir, "hmm_{}".format(baseName))
+    hmmDir = os.path.join(context.graph.workingDir, "hmm_{}".format(baseName))
     extensionUnalignedFile = os.path.join(hmmDir, "queries.txt")
     hmmPath = os.path.join(hmmDir, "hmm_model.txt")
     if not os.path.exists(hmmDir):
         os.makedirs(hmmDir)
     
     backboneExtension = {}
-    for taxon in graph.context.unalignedSequences:
+    for taxon in context.unalignedSequences:
         if not taxon in backbone:
-            backboneExtension[taxon] = graph.context.unalignedSequences[taxon]
+            backboneExtension[taxon] = context.unalignedSequences[taxon]
                 
     sequenceutils.writeFasta(backboneExtension, extensionUnalignedFile) 
     buildTask = hmmutils.buildHmmOverAlignment(alignedFile, hmmPath)

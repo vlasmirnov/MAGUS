@@ -16,8 +16,8 @@ class Task:
     
     functionModuleMap = {"runCommand" : "tools.external_tools",
                          "runAlignmentTask" : "align.aligner",
-                         "recordGapCounts" : "align.merge.alignment_graph",
-                         "buildInducedSubalignment" : "align.merge.alignment_graph"}
+                         "recordGapCounts" : "align.merge.alignment_writer",
+                         "buildInducedSubalignment" : "align.merge.alignment_writer"}
     
     def __init__(self, taskType, outputFile, taskArgs, **kwargs):
         self.taskType = taskType

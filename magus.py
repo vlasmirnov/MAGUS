@@ -110,8 +110,8 @@ def parseArgs():
     parser.add_argument("-f", "--inflationfactor", type=float,
                         help="MCL inflation factor", required=False, default=4)
     
-    parser.add_argument("-c", "--compression", type=str,
-                        help="Alignment compression mode (none, singletons, tetris)", required=False, default="none")
+    parser.add_argument("-c", "--constrain", type=str,
+                        help="Constrain MAGUS to respect subalignments (true or false)", required=False, default="true")
        
     return parser.parse_args()
 
