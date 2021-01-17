@@ -18,6 +18,14 @@ def runCommand(**kwargs):
     for srcPath, destPath in kwargs.get("fileCopyMap", {}).items():
         shutil.move(srcPath, destPath)
 
+def runClustalOmegaGuideTree(fastaPath, workingDir, outputPath, threads = 1):
+    tempPath = os.path.join(os.path.dirname(outputPath), "temp_{}".format(os.path.basename(outputPath)))
+    args = [Configs.clustalPath]
+    args.extend(["-i", fastaPath, "--max-hmm-iterations=-1", "--guidetree-out={}".format(tempPath)])
+    args.extend(["--threads={}".format(threads)])
+    taskArgs = {"command" : subprocess.list2cmdline(args), "fileCopyMap" : {tempPath : outputPath}, "workingDir" : workingDir}
+    return Task(taskType = "runCommand", outputFile = outputPath, taskArgs = taskArgs)
+
 def generateMafftFilePathMap(inputPaths, outputDir):
     mafftMap = {inputPath : os.path.join(outputDir, "mafft_{}".format(os.path.basename(inputPath))) for inputPath in inputPaths}
     return mafftMap

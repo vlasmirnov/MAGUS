@@ -7,7 +7,6 @@ Created on Oct 26, 2020
 import threading
 import os
 import time
-import traceback
 import concurrent.futures
 from configuration import Configs
 from tasks import files
@@ -32,6 +31,8 @@ class TaskManager():
     waitingTasks = set()
     runningTasks = set()
     finishedTasks = set()
+    failedTasks = set()
+    
     taskPool = None
     threadsUsed = 0
     futuresTaskMap = {}
@@ -41,9 +42,13 @@ class TaskManager():
     
 def startTaskManager():
     Configs.log("Starting up the task manager..")
-    TaskManager.pendingTasksFile = os.path.join(Configs.workingDir, "tasks_pending.txt")
-    TaskManager.runningTasksFile = os.path.join(Configs.workingDir, "tasks_running.txt")
-    TaskManager.lockTasksFile = os.path.join(Configs.workingDir, "tasks.lock")
+    
+    tasksDir = os.path.join(Configs.workingDir, "tasks")
+    if not os.path.exists(tasksDir):
+        os.makedirs(tasksDir)  
+    TaskManager.pendingTasksFile = os.path.join(tasksDir, "tasks_pending.txt")
+    TaskManager.runningTasksFile = os.path.join(tasksDir, "tasks_running.txt")
+    TaskManager.lockTasksFile = os.path.join(tasksDir, "tasks.lock")
     
     TaskManager.managerPool = concurrent.futures.ThreadPoolExecutor(max_workers = 1)
     TaskManager.managerFuture = TaskManager.managerPool.submit(runTaskManager)
@@ -60,123 +65,93 @@ def stopTaskManager():
     finally:
         Configs.log("Waiting for {} tasks to finish..".format(len(TaskManager.runningTasks)))
         TaskManager.taskPool.shutdown()
-        
-        with files.FileLock(TaskManager.lockTasksFile):
-            runningTasks = files.readTasksFromFile(TaskManager.runningTasksFile)
-            checkRunningTasks(runningTasks)
-        
+        dealWithFinishedTasks()        
         TaskManager.managerPool.shutdown()
         Configs.log("Task manager stopped..")
 
 def runTaskManager():
     try:
-        while True:
+        while not TaskManager.managerStopSignal:
             with TaskManager.managerLock:
-                if TaskManager.managerStopSignal:
-                    break
-                        
-                if len(TaskManager.finishedTasks) > 0 or len(TaskManager.submittedTasks) > 0:
-                    Configs.log("Task manager status: {} submitted, {} waiting, {}/{} running, {} finished..".format(
-                        len(TaskManager.submittedTasks), len(TaskManager.waitingTasks), len(TaskManager.runningTasks), Configs.numCores, len(TaskManager.finishedTasks)))
-                                
+                dealWithFinishedTasks()
                 dealWithPendingTasks()
-                checkWaitingTasks()
-                
+                dealWithWaitingTasks()
                 TaskManager.managerSignal.clear()
             TaskManager.managerSignal.wait(5)
     finally:
         TaskManager.observerSignal.set()  
         
-def taskCallback(future):
-    task = TaskManager.futuresTaskMap.pop(future)
-    try:
-        task.future = future
-        with TaskManager.managerLock:
-            TaskManager.finishedTasks.add(task)
-            TaskManager.runningTasks.remove(task)
-            TaskManager.threadsUsed = TaskManager.threadsUsed - 1
-            TaskManager.managerSignal.set()
-        setTaskFinished(task)
-    except Exception as exc:
-        Configs.log("Task callback threw an exception:\n{}".format(exc))
-        Configs.log(traceback.format_exc())
-        Configs.log("Task file: {}".format(task.outputFile))
-        raise
-
-def setTaskFinished(task):
-    task.isFinished = True
-    TaskManager.observerSignal.set()
-
-def dealWithPendingTasks():
-    threadsAvailable = Configs.numCores - TaskManager.threadsUsed
-    if len(TaskManager.submittedTasks) > 0 or threadsAvailable > 0:
-        
+def dealWithFinishedTasks():
+    doneTasks = [t for t in TaskManager.finishedTasks if t.taskType == "runAlignmentTask"]
+    failedTasks = [t for t in TaskManager.failedTasks if t.taskType == "runAlignmentTask"]
+    TaskManager.finishedTasks = set()
+    TaskManager.failedTasks = set()
+    
+    if len(doneTasks) + len(failedTasks) > 0:
         with files.FileLock(TaskManager.lockTasksFile):
             runningTasks = files.readTasksFromFile(TaskManager.runningTasksFile)
-            pendingTasks = files.readTasksFromFile(TaskManager.pendingTasksFile)
-            newTasks = []
+            taskSet = set(doneTasks) | set(failedTasks)
+            stillRunningTasks = [t for t in runningTasks if t not in taskSet]
             
-            for task in TaskManager.submittedTasks:
-                if os.path.exists(task.outputFile):
-                    Configs.log("File already exists: {}".format(task.outputFile))
-                    setTaskFinished(task)
-                elif task in pendingTasks or task in runningTasks: 
-                    Configs.log("Task already pending or running: {}".format(task.outputFile))
-                    TaskManager.waitingTasks.add(task)
+            if len(stillRunningTasks) < len(runningTasks):
+                if len(stillRunningTasks) == 0 and os.path.exists(TaskManager.runningTasksFile):
+                    os.remove(TaskManager.runningTasksFile)
                 else:
-                    newTasks.append(task)
-            
-            checkRunningTasks(runningTasks)
-            newRunningTasks, newPendingTasks = assignTasks(newTasks, pendingTasks)
-        
-        if len(newRunningTasks) + len(newPendingTasks) > 0:
-            Configs.log("Launching {} tasks and deferring {} tasks..".format(len(newRunningTasks), len(newPendingTasks)))
-        
-        TaskManager.finishedTasks = set()
-        TaskManager.submittedTasks = set()    
-        
-        for task in newRunningTasks: 
-            Configs.log("New running task, type {}, output file {}".format(task.taskType, task.outputFile))
-            if task.taskType not in TaskManager.serialTaskTypes:
-                TaskManager.threadsUsed = TaskManager.threadsUsed + 1
-                TaskManager.runningTasks.add(task)
-                future = TaskManager.taskPool.submit(task.run)
-                Configs.log("Added task to task pool ({} threads used), type {}, output file {}".format(TaskManager.threadsUsed, task.taskType, task.outputFile))
-                TaskManager.futuresTaskMap[future] = task
-                future.add_done_callback(taskCallback)
-                Configs.log("Future status {} for file {}".format(future._state, task.outputFile))
-        for task in newPendingTasks:
-            TaskManager.waitingTasks.add(task)
+                    files.writeTasksToFile(stillRunningTasks, TaskManager.runningTasksFile, append = False)
+                    
+            if len(failedTasks) > 0:
+                files.writeTasksToFile(failedTasks, TaskManager.pendingTasksFile, append = True)    
 
-def assignTasks(newTasks, pendingTasks):
-    stillPendingTasks, newRunningTasks, newPendingTasks = [], [], []
-    
-    threadsAvailable = Configs.numCores - TaskManager.threadsUsed
-    for num, task in enumerate(newTasks + pendingTasks):
-        if threadsAvailable > 0 and task.taskType not in TaskManager.serialTaskTypes:
-            newRunningTasks.append(task)
-            threadsAvailable = threadsAvailable - 1
-        elif task.taskType in TaskManager.serialTaskTypes and TaskManager.observerWaiting and TaskManager.observerTask is None:
-            newRunningTasks.append(task)
-            TaskManager.observerTask = task
-            TaskManager.observerSignal.set()
-        elif num < len(newTasks):
-            newPendingTasks.append(task) 
+def dealWithPendingTasks():
+    numToLaunch = min(1, Configs.numCores - TaskManager.threadsUsed)
+    newTasks = []
+    for t in TaskManager.submittedTasks:
+        if os.path.exists(t.outputFile):
+            Configs.log("File already exists: {}".format(t.outputFile))
+            setTaskFinished(t)
         else:
-            stillPendingTasks.append(task)
+            newTasks.append(t)
     
-    if len(stillPendingTasks) < len(pendingTasks):
-        files.writeTasksToFile(stillPendingTasks, TaskManager.pendingTasksFile, append = False)
-    files.writeTasksToFile(newRunningTasks, TaskManager.runningTasksFile, append = True)
-    files.writeTasksToFile(newPendingTasks, TaskManager.pendingTasksFile, append = True)
-    return newRunningTasks, newPendingTasks
+    if len(newTasks) == 0 and (numToLaunch == 0 or not os.path.exists(TaskManager.pendingTasksFile)):
+        return
+    else:
+        with files.FileLock(TaskManager.lockTasksFile):
+            pendingTasks = files.readTasksFromFile(TaskManager.pendingTasksFile)
+            runningTasks = files.readTasksFromFile(TaskManager.runningTasksFile)
+            taskSet = set(pendingTasks) | set(runningTasks)
+            newTasksToLaunch = newTasks
+            if len(taskSet) > 0:
+                newTasksToLaunch = []
+                for t in newTasks:
+                    if t in taskSet:
+                        Configs.log("Task already pending or running: {}".format(t.outputFile))
+                        TaskManager.waitingTasks.add(t)
+                    else:
+                        newTasksToLaunch.append(t)
+                
+            launchedNewTasks, remainingNewTasks = launchTasks(newTasksToLaunch, numToLaunch)
+            numToLaunch = numToLaunch - len(launchedNewTasks)
+            launchedPendingTasks, remainingPendingTasks = launchTasks(pendingTasks, numToLaunch)
+            
+            writeRunningTasks = [t for t in launchedNewTasks + launchedPendingTasks if t.taskType == "runAlignmentTask"]
+            if len(writeRunningTasks) > 0:
+                files.writeTasksToFile(writeRunningTasks, TaskManager.runningTasksFile, append = True)
+            
+            if len(remainingPendingTasks) + len(remainingNewTasks) == 0 and os.path.exists(TaskManager.pendingTasksFile):
+                os.remove(TaskManager.pendingTasksFile)
+            else:
+                if len(remainingPendingTasks) < len(pendingTasks):
+                    files.writeTasksToFile(remainingPendingTasks, TaskManager.pendingTasksFile, append = False)
+                files.writeTasksToFile(remainingNewTasks, TaskManager.pendingTasksFile, append = True)
 
-def checkRunningTasks(runningTasks):
-    stillRunningTasks = [t for t in runningTasks if t not in TaskManager.finishedTasks]
-    if len(stillRunningTasks) < len(runningTasks):
-        files.writeTasksToFile(stillRunningTasks, TaskManager.runningTasksFile, append = False)
-        
-def checkWaitingTasks():
+        TaskManager.waitingTasks.update(remainingNewTasks)    
+        if len(launchedNewTasks) + len(launchedPendingTasks) + len(remainingNewTasks) + len(remainingPendingTasks) > 0:     
+            Configs.log("Launched {} submitted tasks and {} pending tasks, deferred {} submitted tasks and {} pending tasks.."
+                        .format(len(launchedNewTasks), len(launchedPendingTasks), len(remainingNewTasks), len(remainingPendingTasks)))
+    
+    TaskManager.submittedTasks = set()
+
+def dealWithWaitingTasks():
     timeSinceFileCheck = time.time() - TaskManager.lastFilesCheckTime
     if timeSinceFileCheck >= 5: 
         for task in list(TaskManager.waitingTasks):
@@ -185,4 +160,50 @@ def checkWaitingTasks():
                 TaskManager.waitingTasks.remove(task)
                 setTaskFinished(task)
         TaskManager.lastFilesCheckTime = time.time()
+
+def launchTasks(tasks, numTasksToLaunch):
+    launchedTasks = []
+    remainingTasks = []    
+    threadsAvailable = Configs.numCores - TaskManager.threadsUsed
+    toLaunch = min(numTasksToLaunch, threadsAvailable)    
+    for task in tasks:
+        launchable = task.taskType not in TaskManager.serialTaskTypes or (TaskManager.observerWaiting and TaskManager.observerTask is None)
+        if toLaunch > 0 and launchable:
+            launchTask(task)
+            toLaunch = toLaunch - 1
+            launchedTasks.append(task)
+        else:
+            remainingTasks.append(task)
+    return launchedTasks, remainingTasks
+
+def launchTask(task):
+    Configs.log("Launching a new task.. {}/{} threads used, type: {}, output file: {}".format(TaskManager.threadsUsed, Configs.numCores, task.taskType, task.outputFile))
+    TaskManager.runningTasks.add(task)
+    if task.taskType not in TaskManager.serialTaskTypes:
+        TaskManager.threadsUsed = TaskManager.threadsUsed + 1
+        future = TaskManager.taskPool.submit(task.run)
+        TaskManager.futuresTaskMap[future] = task
+        future.add_done_callback(taskCallback)
+        #Configs.log("Future status {} for file {}".format(future._state, task.outputFile))
+    else:
+        TaskManager.observerTask = task
+        TaskManager.observerSignal.set()
+
+def taskCallback(future):
+    task = TaskManager.futuresTaskMap.pop(future)
+    task.future = future
+    with TaskManager.managerLock:
+        setTaskFinished(task)
+        try:
+            task.future.result()
+            TaskManager.finishedTasks.add(task)
+        except:
+            TaskManager.failedTasks.add(task)
+        TaskManager.runningTasks.remove(task)
+        TaskManager.threadsUsed = TaskManager.threadsUsed - 1
+        TaskManager.managerSignal.set()
+        
+def setTaskFinished(task):
+    task.isFinished = True
+    TaskManager.observerSignal.set()
         

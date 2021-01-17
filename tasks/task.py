@@ -27,9 +27,10 @@ class Task:
         for attr in kwargs:
             vars(self)[attr] = kwargs.get(attr)    
         self.attributes =  list(vars(self).keys())
-           
+        
         self.isFinished = False
         self.future = None
+        self.json = self.toJson()   
     
     def submitTask(self):
         submitTasks([self])
@@ -48,22 +49,19 @@ class Task:
             else:
                 Configs.log("File already exists: {}".format(self.outputFile))
         except Exception as exc:
-            Configs.log("Task for {} threw an exception:\n{}".format(self.outputFile, exc))
-            Configs.log(traceback.format_exc())
+            Configs.error("Task for {} threw an exception:\n{}".format(self.outputFile, exc))
+            Configs.error(traceback.format_exc())
             raise
+        finally:
+            self.isFinished = True
         
     def checkFinished(self):
         if not self.isFinished:
             return False
-        try:
-            if self.future is not None:
-                self.future.result()
-            return True
-        except Exception as exc:
-            Configs.log("Worker for task {} threw an exception:\n{}".format(self.outputFile, exc))
-            Configs.log(traceback.format_exc())
-            raise
-    
+        if self.future is not None:
+            self.future.result()
+        return True
+        
     def toJson(self):
         mapper = {attr : getattr(self, attr) for attr in self.attributes}
         return json.dumps(mapper)

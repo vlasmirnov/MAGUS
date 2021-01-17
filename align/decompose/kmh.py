@@ -47,7 +47,7 @@ def buildInitialTreeAlign(tempDir, sequencesPath):
         shutil.rmtree(tempDir)
     os.makedirs(tempDir)
     
-    initialAlign, unusedTaxa = decomposer.pastastyle.buildInitialAlignment(sequencesPath, tempDir, Configs.decompositionSkeletonSize, 1000)
+    initialAlign, unusedTaxa = decomposer.initial_tree.buildInitialAlignment(sequencesPath, tempDir, Configs.decompositionSkeletonSize, 1000)
     sequenceutils.writeFasta(initialAlign, outputAlignPath)    
     #external_tools.runRaxmlNg(outputAlignPath, tempDir, outputTreePath, 8).run()
     external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath).run()

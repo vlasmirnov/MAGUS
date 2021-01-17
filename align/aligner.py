@@ -18,7 +18,7 @@ from tasks import task
 def mainAlignmentTask():    
     args = {"workingDir" : Configs.workingDir, "outputFile" : Configs.outputPath,
             "subalignmentPaths" : Configs.subalignmentPaths, "sequencesPath" : Configs.sequencesPath,
-            "backbonePaths" : Configs.backbonePaths, "guideTreePath" : Configs.guideTreePath}
+            "backbonePaths" : Configs.backbonePaths, "guideTree" : Configs.guideTree}
     task = createAlignmentTask(args)
     task.submitTask()
     task.awaitTask()

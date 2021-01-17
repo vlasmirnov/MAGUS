@@ -23,8 +23,8 @@ def main():
         manager.startTaskManager()
         mainAlignmentTask()
     except:
-        Configs.log("MAGUS aborted with an exception..")
-        Configs.log(traceback.format_exc())
+        Configs.error("MAGUS aborted with an exception..")
+        Configs.error(traceback.format_exc())
     finally:
         manager.stopTaskManager()
     
@@ -50,8 +50,8 @@ def parseArgs():
                         help="Output alignment path", required=True)
     
     parser.add_argument("-t", "--guidetree", type=str,
-                        help="User guide tree for alignment",
-                        required=False, default=None)
+                        help="Guide tree for subset decomposition. fasttree (default), clustal, parttree, or path to user guide tree",
+                        required=False, default="fasttree")
 
     parser.add_argument("-np", "--numprocs", type=int,
                         help="Number of processors to use (default: # cpus available)",

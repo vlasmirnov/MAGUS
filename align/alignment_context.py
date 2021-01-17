@@ -18,7 +18,7 @@ class AlignmentContext:
         self.subsetPaths = []
         self.subalignmentPaths = []
         self.backbonePaths = []
-        self.guideTreePath = None
+        self.guideTree = None
         
         self.unalignedSequences = None
         #self.taxa = []

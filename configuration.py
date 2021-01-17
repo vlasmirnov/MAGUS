@@ -16,7 +16,7 @@ class Configs:
     subsetPaths = None
     subalignmentPaths = None
     backbonePaths = None
-    guideTreePath = None
+    guideTree = "fasttree"
     outputPath = None
     dataType = None
     
@@ -39,6 +39,7 @@ class Configs:
     
     constrain = True
     
+    clustalPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/clustal/clustalo")
     mafftPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mafft/mafft")
     mclPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mcl/bin/mcl")
     mlrmclPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mlrmcl/mlrmcl")
@@ -49,15 +50,27 @@ class Configs:
     raxmlPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/raxmlng/raxml-ng")
     
     logPath = None
+    errorPath = None
     
     numCores = 1
     searchHeapLimit = 5000
     
     @staticmethod
-    def log(msg):
+    def log(msg, path = None):
         print(msg)
-        if Configs.logPath is not None:
-            with open(Configs.logPath, 'a') as logFile:
+        path = Configs.logPath if path is None else path
+        Configs.writeMsg(msg, path)
+    
+    @staticmethod
+    def error(msg, path = None):
+        Configs.log(msg)
+        path = Configs.errorPath if path is None else path
+        Configs.writeMsg(msg, path)
+    
+    @staticmethod
+    def writeMsg(msg, path):
+        if path is not None:
+            with open(path, 'a') as logFile:
                 logFile.write("{}    {}\n".format(time.strftime("%Y-%m-%d %H:%M:%S"), msg))
     
     @staticmethod
@@ -78,7 +91,10 @@ def buildConfigs(args):
         os.makedirs(Configs.workingDir)
     
     Configs.sequencesPath = os.path.abspath(args.sequences) if args.sequences is not None else Configs.sequencesPath
-    Configs.guideTreePath = os.path.abspath(args.guidetree) if args.guidetree is not None else Configs.guideTreePath
+    
+    Configs.guideTree = os.path.abspath(args.guidetree) if args.guidetree is not None else Configs.guideTree
+    if args.guidetree is not None:
+        Configs.guideTree = os.path.abspath(args.guidetree) if os.path.exists(os.path.abspath(args.guidetree)) else args.guidetree
     
     Configs.subalignmentPaths = []
     for p in args.subalignments:
@@ -123,3 +139,4 @@ def buildConfigs(args):
     Configs.constrain = args.constrain.lower() == "true"
     
     Configs.logPath = os.path.join(Configs.workingDir, "log.txt")    
+    Configs.errorPath = os.path.join(Configs.workingDir, "log_errors.txt")

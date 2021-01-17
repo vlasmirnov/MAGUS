@@ -14,7 +14,7 @@ from tasks import task
 def writeTasksToFile(taskList, tasksFile, append = True):
     with open(tasksFile, 'a' if append else 'w') as file:
         for t in taskList:
-            file.write(t.toJson() + "\n")
+            file.write(t.json + "\n")
 
 def readTasksFromFile(tasksFile):
     fileTasks = []
@@ -38,7 +38,7 @@ class FileLock:
                 lock.close()
                 return
             except:
-                time.sleep(random.random() + 1)
+                time.sleep(random.random() + 0.5)
             
     def __exit__(self, excType, excVal, excTb):
         os.remove(self.filePath)

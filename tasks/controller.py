@@ -47,19 +47,22 @@ def observeTaskManager():
     if task is not None:
         try:
             task.run()
+            with TaskManager.managerLock:
+                TaskManager.runningTasks.remove(task)
+                TaskManager.finishedTasks.add(task)
         except:
-            TaskManager.managerStopSignal = True
+            with TaskManager.managerLock:
+                TaskManager.runningTasks.remove(task)
+                TaskManager.failedTasks.add(task)
             raise
         finally:
-            with TaskManager.managerLock:
-                TaskManager.finishedTasks.add(task)
-            task.isFinished = True
             TaskManager.observerSignal.set()
+            
         #manager.setTaskFinished(task)
 
 def checkTaskManager():
     if not TaskManager.managerFuture.running():
-        Configs.log("Task manager is dead for some reason..")
+        Configs.error("Task manager is dead for some reason..")
         TaskManager.managerFuture.result()
         raise Exception("Task manager is dead for some reason..")
         
