@@ -1,5 +1,20 @@
 # MAGUS
-Multiple Sequence Alignment  using Graph Clustering
+Multiple Sequence Alignment using Graph Clustering
+
+- - - -
+
+## Purpose and Functionality
+MAGUS is a tool for piecewise large-scale multiple sequence alignment.  
+The dataset is divided into subsets, which are independently aligned with a base method (currently MAFFT -linsi). These subalignments are merged together by clustering an alignment graph, which is constructed from a set of backbone alignments. This process allows MAGUS to effectively boost MAFFT -linsi to over a million sequences.
+
+The basic procedure is outlined below. 
+* The input is a set of unaligned sequences. Alternatively, the user can provide a set of multiple sequence alignments and skip the next two steps.
+* The dataset is decomposed into subsets.
+* The subsets are aligned with MAFFT -linsi. 
+* A set of backbone alignments are generated with MAFFT -linsi (or provided by the user).
+* The backbones are compiled into an alignment graph
+* The graph is clustered with MCL
+* The clusters are resolved into a final alignment
 
 - - - -
 
@@ -8,6 +23,7 @@ MAGUS requires
 * Python 3
 * MAFFT (linux version is included)
 * MCL (linux version is included)
+* FastTree and Clustal Omega are needed if using these guide trees (linux versions included) 
 
 If you would like to use some other version of MAFFT and/or MCL (for instance, if you're using Mac),
 you will need to edit the MAFFT/MCL paths in configuration.py  
@@ -16,35 +32,54 @@ you will need to edit the MAFFT/MCL paths in configuration.py
 - - - -
 
 ## Getting Started
-Please navigate to the "example" directory to get started with some sample data.  
+Please navigate your terminal to the "example" directory to get started with some sample data.  
 A few basic ways of running MAGUS are shown below.  
+Run "magus.py -h" to view the full list of arguments. 
 
-**-o** specifies the output merged alignment path  
-**-s** specifies the directory with subalignment files  
-**-d** specifies the working directory for GCM's intermediate files, like the graph, clusters, log, etc.  
+***Align a set of unaligned sequences from scratch***
+*python3 ../magus.py -d outputs -i unaligned_sequences.txt -o magus_result.txt*  
 
-**python3 ../magus.py -d outputs -s subalignments -o magus_result.txt**
+*-o* specifies the output alignment path  
+*-d* (optional) specifies the working directory for GCM's intermediate files, like the graph, clusters, log, etc.  
 
-**-d** can be omitted; the working directory will be the directory of the ouput file
+***Merge a prepared set of alignments***
+*python3 ../magus.py -d outputs -s subalignments -o magus_result.txt*  
 
-**python3 ../magus.py -s subalignments -o magus_result.txt**
+*-s* specifies the directory with subalignment files. Alternatively, you can pass a list of file paths.   
+*-b* (optional) specifies the directory with user-provided backbone alignment files. If omitted, they will be generated with MAFFT
 
-**-b** specifies the directory with user-provided backbone alignment files. If omitted, they will be generated with MAFFT
+- - - -
 
-**python3 ../magus.py -d outputs -s subalignments -b backbones -o magus_result.txt**
+## Controlling the pipeline
 
-Instead of passing a directory with **-b**, you can pass a list of backbone files
+***Specify subset decomposition behavior***
 
-**python3 ../magus.py -d outputs -s subalignments -b backbones/backbone_1.txt backbones/backbone_2.txt -o magus_result.txt**
+*python3 ../magus.py -d outputs -i unaligned_sequences.txt -t fasttree --maxnumsubsets 100 --maxsubsetsize 50 -o magus_result.txt*
 
-**-r** and **-m** specify the number of MAFFT backbones and their maximum size, respectively. Default to 10 and 200.  
-**-f** specifies the MCL inflation factor. Defaults to 4.0
+*-t* specifies the guide tree method to use, and is the main way to set the decomposition strategy.  
+Available options are fasttree (default), parttree, clustal (recommended for very large datasets), and random.
+*--maxnumsubsets* sets the desired number of subsets to decompose into (default 25).  
+*--maxsubsetsize* sets the threshold to stop decomposing subsets below this number (default 50).  
+Decomposition proceeds until maxnumsubsets is reached OR all subsets are below maxsubsetsize.
 
-**python3 ../magus.py -d outputs -s subalignments -r 10 -m 200 -f 2.5 -o magus_result.txt**
+***Specify beckbones for alignment graph***
 
-Instead of passing a directory with **-s**, you can pass a list of subalignment files
+*python3 ../magus.py -d outputs -i unaligned_sequences.txt -r 10 -m 200 -o magus_result.txt*
+*python3 ../magus.py -d outputs -s subalignments -b backbones -o magus_result.txt*  
 
-**python3 ../magus.py -d outputs -s subalignments/s_1.txt subalignments/s_2.txt subalignments/s_3.txt subalignments/s_4.txt subalignments/s_5.txt subalignments/s_6.txt subalignments/s_7.txt subalignments/s_8.txt subalignments/s_9.txt subalignments/s_10.txt subalignments/s_11.txt subalignments/s_12.txt subalignments/s_13.txt subalignments/s_14.txt -o magus_result.txt**
+*-r* and *-m* specify the number of MAFFT backbones and their maximum size, respectively. Default to 10 and 200.  
+Alternatively, the user can provide his own backbones; *-b* can be used to provide a directory or a list of files.
+
+***Specify graph trace method***
+*python3 ../magus.py -d outputs -i unaligned_sequences.txt --graphtracemethod mwtgreedy -o magus_result.txt*
+
+*--graphtracemethod* is the flag that governs the graph trace method. Options are minclusters (default and recommended), fm, mwtgreedy (recommended for very large graphs), rg, or mwtsearch.
+
+***Unconstrained alignment***
+*python3 ../magus.py -d outputs -i unaligned_sequences.txt -c false -o magus_result.txt*
+
+By default, MAGUS constrains the merged alignment to induce all subalignments. This constraint can be disabled with *-c false*.  
+This drastically slows MAGUS and is strongly not recommended above 200 sequences. 
 
 - - - -
 
@@ -55,4 +90,12 @@ Please delete them/specify a different working directory to perform a clean run.
 * Related issue: if MAGUS is stopped while running MAFFT, MAFFT's output backbone files will be empty.  
 This will cause errors if MAGUS reruns and finds these empty files.
 * A large number of subalignments (>100) will start to significantly slow down the ordering phase, especially for very heterogenous data.  
-I would generally disadvise using more than 50 subalignments, unless the data is expected to be well-behaved.  
+I would generally disadvise using more than 100 subalignments, unless the data is expected to be well-behaved.  
+
+- - - -
+
+## Related Publications
+
+* Original MAGUS paper: ___Smirnov, V. and Warnow, T., 2020. MAGUS: Multiple Sequence Alignment using Graph Clustering. Bioinformatics.___
+* GCM-MWT paper:
+* MAGUS on ultra-large datasets: 
