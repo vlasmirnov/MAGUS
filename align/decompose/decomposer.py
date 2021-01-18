@@ -47,7 +47,7 @@ def buildDecomposition(context, subsetsDir):
     if context.unalignedSequences is None:
         context.unalignedSequences = sequenceutils.readFromFasta(context.sequencesPath, removeDashes=True)    
     
-    if Configs.decompositionStrategy == "random" and Configs.outputPath == context.outputFile:
+    if (Configs.decompositionStrategy == "random" or context.guideTree == "random") and Configs.outputPath == context.outputFile:
         context.subsetPaths = randomDecomposition(subsetsDir, context.unalignedSequences, Configs.decompositionMaxNumSubsets)
         
     elif Configs.decompositionStrategy == "kmh":
