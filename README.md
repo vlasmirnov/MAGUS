@@ -52,10 +52,10 @@ Run "magus.py -h" to view the full list of arguments.
 ## Controlling the pipeline
 
 **Specify subset decomposition behavior**  
-*python3 ../magus.py -d outputs -i unaligned_sequences.txt -t fasttree --maxnumsubsets 100 --maxsubsetsize 50 -o magus_result.txt*
+*python3 ../magus.py -d outputs -i unaligned_sequences.txt -t fasttree --maxnumsubsets 100 --maxsubsetsize 50 -o magus_result.txt*  
 
 *-t* specifies the guide tree method to use, and is the main way to set the decomposition strategy.  
-Available options are fasttree (default), parttree, clustal (recommended for very large datasets), and random.
+Available options are fasttree (default), parttree, clustal (recommended for very large datasets), and random.  
 *--maxnumsubsets* sets the desired number of subsets to decompose into (default 25).  
 *--maxsubsetsize* sets the threshold to stop decomposing subsets below this number (default 50).  
 Decomposition proceeds until maxnumsubsets is reached OR all subsets are below maxsubsetsize.
@@ -68,12 +68,12 @@ Decomposition proceeds until maxnumsubsets is reached OR all subsets are below m
 Alternatively, the user can provide his own backbones; *-b* can be used to provide a directory or a list of files.
 
 **Specify graph trace method**  
-*python3 ../magus.py -d outputs -i unaligned_sequences.txt --graphtracemethod mwtgreedy -o magus_result.txt*
+*python3 ../magus.py -d outputs -i unaligned_sequences.txt --graphtracemethod mwtgreedy -o magus_result.txt*  
 
 *--graphtracemethod* is the flag that governs the graph trace method. Options are minclusters (default and recommended), fm, mwtgreedy (recommended for very large graphs), rg, or mwtsearch.
 
 **Unconstrained alignment**  
-*python3 ../magus.py -d outputs -i unaligned_sequences.txt -c false -o magus_result.txt*
+*python3 ../magus.py -d outputs -i unaligned_sequences.txt -c false -o magus_result.txt*  
 
 By default, MAGUS constrains the merged alignment to induce all subalignments. This constraint can be disabled with *-c false*.  
 This drastically slows MAGUS and is strongly not recommended above 200 sequences. 
