@@ -46,7 +46,6 @@ Run "magus.py -h" to view the full list of arguments.
 *python3 ../magus.py -d outputs -s subalignments -o magus_result.txt*  
 
 *-s* specifies the directory with subalignment files. Alternatively, you can pass a list of file paths.   
-*-b* (optional) specifies the directory with user-provided backbone alignment files. If omitted, they will be generated with MAFFT
 
 - - - -
 
