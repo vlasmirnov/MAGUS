@@ -12,9 +12,9 @@ The basic procedure is outlined below.
 * The dataset is decomposed into subsets.
 * The subsets are aligned with MAFFT -linsi. 
 * A set of backbone alignments are generated with MAFFT -linsi (or provided by the user).
-* The backbones are compiled into an alignment graph
-* The graph is clustered with MCL
-* The clusters are resolved into a final alignment
+* The backbones are compiled into an alignment graph.
+* The graph is clustered with MCL.
+* The clusters are resolved into a final alignment.
 
 - - - -
 
@@ -61,7 +61,7 @@ Available options are fasttree (default), parttree, clustal (recommended for ver
 Decomposition proceeds until maxnumsubsets is reached OR all subsets are below maxsubsetsize.
 
 **Specify beckbones for alignment graph**  
-*python3 ../magus.py -d outputs -i unaligned_sequences.txt -r 10 -m 200 -o magus_result.txt*
+*python3 ../magus.py -d outputs -i unaligned_sequences.txt -r 10 -m 200 -o magus_result.txt*  
 *python3 ../magus.py -d outputs -s subalignments -b backbones -o magus_result.txt*  
 
 *-r* and *-m* specify the number of MAFFT backbones and their maximum size, respectively. Default to 10 and 200.  
