@@ -12,24 +12,16 @@ from tools import external_tools
 
 def runMlrMclClustering(graph):  
     Configs.log("Running MLR-MCL alignment graph clustering..")
+    graphPath = os.path.join(graph.workingDir, "graph_mlr_mcl.txt")
     clusterPath = os.path.join(graph.workingDir, "clusters_mlr_mcl.txt")
     
     if not os.path.exists(clusterPath):
-        graphPath = os.path.join(graph.workingDir, "library_graph_mlr_mcl.txt")
         if not os.path.exists(graphPath):
             writeGraphToFile(graph, graphPath)
-        else:
-            Configs.log("Found existing MLR-MCL graph file {}".format(graphPath))
-        
-        external_tools.runMlrMcl(graphPath, 30000, 0.5, 4, graph.workingDir, clusterPath)
-        #external_tools.runMlrMcl(graphPath, None, None, None, graph.workingDir, clusterPath)
-        #external_tools.runMlrMcl(graphPath, 1000000, None, None, graph.workingDir, clusterPath)
-        #external_tools.runMlrMcl(graphPath, None, None, 8, graph.workingDir, clusterPath)
-        #external_tools.runMlrMcl(graphPath, None, 0.25, None, graph.workingDir, clusterPath)
-    else:
-        Configs.log("Found existing MLR-MCL cluster file {}".format(clusterPath))
+        external_tools.runMlrMcl(graphPath, 30000, 0.5, 4, graph.workingDir, clusterPath).run()
+
     graph.clusters = readClustersFromFile(clusterPath)
-    
+    graph.writeClustersToFile(graph.clusterPath)
     
 def writeGraphToFile(graph, filePath):
     Configs.log("Writing MLR-MCL graph file to {}".format(filePath))

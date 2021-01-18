@@ -7,25 +7,33 @@ Created on May 29, 2020
 import os
 import shutil
 import time
+import random
 
 from align.decompose import decomposer
 from helpers import sequenceutils, treeutils, hmmutils
+from tasks import task
 from tools import external_tools
 from configuration import Configs
 
-
-def buildSubsetsKMH(subsetsDir, sequencesPath):
+def buildSubsetsKMH(context, subsetsDir):
     tempDir = os.path.join(subsetsDir, "initial_tree")
     
-    Configs.log("Building KMH decomposition on {} with skeleton size {}..".format(sequencesPath, Configs.decompositionSkeletonSize))
+    Configs.log("Building KMH decomposition on {} with skeleton size {}/{}..".format(context.sequencesPath, Configs.decompositionSkeletonSize, 1000))
     time1 = time.time()
     
-    initialTreePath, initialAlignPath = buildInitialTreeAlign(tempDir, sequencesPath) 
-    subsetSeedPaths = treeutils.decomposeGuideTree(tempDir, initialAlignPath, initialTreePath, None, Configs.decompositionMaxNumSubsets)
-    subsetPaths = reassignTaxons(subsetsDir, subsetSeedPaths, sequencesPath)
+    initialTreePath, initialAlignPath, unusedTaxa = buildInitialTreeAlign(tempDir, context.sequencesPath) 
+    
+    if len(unusedTaxa) == 0:
+        subsetPaths = treeutils.decomposeGuideTree(tempDir, initialAlignPath, initialTreePath, Configs.decompositionMaxSubsetSize, Configs.decompositionMaxNumSubsets)
+    else:
+        subsetSeedDir = os.path.join(subsetsDir, "seed_subsets")
+        if not os.path.exists(subsetSeedDir):
+            os.makedirs(subsetSeedDir)
+        subsetSeedPaths = treeutils.decomposeGuideTree(subsetSeedDir, initialAlignPath, initialTreePath, None, Configs.decompositionMaxNumSubsets)
+        subsetPaths = reassignTaxons(subsetsDir, subsetSeedPaths, context.unalignedSequences, unusedTaxa)
     
     time2 = time.time()
-    Configs.log("Built KMH decomposition on {} in {} sec..".format(sequencesPath, time2-time1))
+    Configs.log("Built KMH decomposition on {} in {} sec..".format(context.sequencesPath, time2-time1))
 
     return subsetPaths
 
@@ -39,47 +47,56 @@ def buildInitialTreeAlign(tempDir, sequencesPath):
         shutil.rmtree(tempDir)
     os.makedirs(tempDir)
     
-    skeletonPath = os.path.join(tempDir, "skeleton_sequences.txt")
-    
-    sequences = sequenceutils.readFromFasta(sequencesPath, True)
-    skeletonTaxa, remainingTaxa = decomposer.chooseSkeletonTaxa(sequences, Configs.decompositionSkeletonSize)
-    sequenceutils.writeFasta(sequences, skeletonPath, skeletonTaxa)
-    external_tools.runMafft(skeletonPath, None, tempDir, outputAlignPath, Configs.numCores)
-    
-    external_tools.runRaxmlNg(outputAlignPath, tempDir, outputTreePath, 8)
-    #external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath)
+    initialAlign, unusedTaxa = decomposer.initial_tree.buildInitialAlignment(sequencesPath, tempDir, Configs.decompositionSkeletonSize, 1000)
+    sequenceutils.writeFasta(initialAlign, outputAlignPath)    
+    #external_tools.runRaxmlNg(outputAlignPath, tempDir, outputTreePath, 8).run()
+    external_tools.runFastTree(outputAlignPath, tempDir, outputTreePath).run()
 
-    return outputTreePath, outputAlignPath
+    return outputTreePath, outputAlignPath, unusedTaxa
 
-def reassignTaxons(subsetsDir, subsetSeedPaths, sequencesPath):
-    sequences = sequenceutils.readFromFasta(sequencesPath, True)
-    hmmPaths = {}
+def reassignTaxons(subsetsDir, subsetSeedPaths, sequences, unusedTaxa):
+    unusedPath = os.path.join(subsetsDir, "unassigned_sequences.txt")
+    sequenceutils.writeFasta(sequences, unusedPath, unusedTaxa)
+    
+    hmmMap = {}
     for subsetPath in subsetSeedPaths:
-        hmmPaths[subsetPath] = os.path.join(os.path.dirname(subsetPath), "hmm_{}".format(os.path.basename(subsetPath)).replace(".", "_"))
-    hmmutils.buildHmms(hmmPaths)
-    subsetScores = hmmutils.buildHmmScores(hmmPaths, sequencesPath)
+        hmmDir = os.path.join(os.path.dirname(subsetPath), "hmm_{}".format(os.path.basename(subsetPath)).replace(".", "_"))
+        if not os.path.exists(hmmDir):
+            os.makedirs(hmmDir)
+        hmmMap[subsetPath] = os.path.join(hmmDir, "hmm_model.txt") 
+    hmmTasks = hmmutils.buildHmms(hmmMap)
+    task.submitTasks(hmmTasks)
+    task.awaitTasks(hmmTasks)
+    hmmPaths = [t.outputFile for t in hmmTasks]
     
-    #for subsetPath in hmmPaths:
-    #    shutil.rmtree(hmmPaths[subsetPath])
+    scoreFileHmmFileMap = {}
+    scoreTasks = hmmutils.buildHmmScores(hmmPaths, unusedPath, scoreFileHmmFileMap)
+    task.submitTasks(scoreTasks) 
     
     bestScores = {}
     taxonHmmMap = {}
-    for i, subsetPath in enumerate(subsetSeedPaths):
-        scores = subsetScores[subsetPath]
-        for taxon in scores:
-            if scores[taxon] > bestScores.get(taxon, -float("inf")):
-                bestScores[taxon] = scores[taxon]
-                taxonHmmMap[taxon] = i
+    for scoreTask in task.asCompleted(scoreTasks):
+        subsetScores = hmmutils.readSearchFile(scoreTask.outputFile)
+        for taxon, scores in subsetScores.items():
+            if scores[1] > bestScores.get(taxon, -float("inf")):
+                bestScores[taxon] = scores[1]
+                taxonHmmMap[taxon] = scoreFileHmmFileMap[scoreTask.outputFile]
     
-    subsetTaxons = [[] for subsetPath in subsetSeedPaths]
-    for taxon in taxonHmmMap:
-        subsetTaxons[taxonHmmMap[taxon]].append(taxon)
+    subsetTaxons = {file : [] for file in hmmPaths}
+    for taxon, hmmPath in taxonHmmMap.items():
+        subsetTaxons[hmmPath].append(taxon)
+    for subsetPath, hmmPath in hmmMap.items():
+        subset = sequenceutils.readFromFasta(subsetPath)
+        for taxon in subset:
+            subsetTaxons[hmmPath].append(taxon)
     
     subsetPaths = []    
-    for i, subset in enumerate(subsetTaxons):
-        subsetPath = os.path.join(subsetsDir, "subset_{}.txt".format(i+1))
+    i = 1
+    for hmmPath, subset in subsetTaxons.items():
+        subsetPath = os.path.join(subsetsDir, "subset_{}.txt".format(i))
         subsetPaths.append(subsetPath)
         sequenceutils.writeFasta(sequences, subsetPath, subset)
+        i = i + 1
 
     return subsetPaths
 

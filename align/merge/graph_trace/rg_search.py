@@ -12,10 +12,10 @@ from configuration import Configs
 def rgSearch(graph):
     Configs.log("Finding graph trace with region-growing search..")
     
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     lowerBound = [graph.subsetMatrixIdx[i] for i in range(k)]
     upperBound = [graph.subsetMatrixIdx[i] + graph.subalignmentLengths[i] for i in range(k)] 
-    return rgCluster(graph, lowerBound, upperBound, True)
+    graph.clusters = rgCluster(graph, lowerBound, upperBound, True)
 
 def rgCluster(graph, lowerBound, upperBound, enforceTrace = True):
     clusters = []

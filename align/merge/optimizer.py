@@ -14,7 +14,7 @@ def optimizeTrace(graph):
     
     if Configs.graphTraceOptimize:
         Configs.log("Optimization pass..")
-        graph.clusters = graph.addSingletonClusters(graph.clusters)
+        graph.addSingletonClusters()
         graph.clusters = optimizeClusters(graph, graph.clusters)
         Configs.log("Optimized the trace to {} clusters with a total cost of {}".format(len(graph.clusters), graph.computeClusteringCost(graph.clusters)))
     else:
@@ -152,7 +152,7 @@ class SearchContext:
                 
         print("Working with {} clusters..".format(len(self.clusters) - len(self.deletedClusters)))
         
-        k = len(graph.subalignments)
+        k = len(graph.context.subalignments)
         self.gainStructure = [[0 for j in range(graph.subalignmentLengths[i])] for i in range(k)]        
         for i in range(k):
             for j in range(graph.subalignmentLengths[i]):
@@ -180,7 +180,7 @@ class SearchContext:
         #sys.exit()
     
     def getPositiveMoves(self, graph):
-        k = len(graph.subalignments)
+        k = len(graph.context.subalignments)
         candidates = []
         used = set()        
         

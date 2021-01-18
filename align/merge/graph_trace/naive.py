@@ -10,18 +10,18 @@ from configuration import Configs
 def atomizedClustering(graph):
     Configs.log("Building a fully atomized clustering..")
     
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     lowerBound = [graph.subsetMatrixIdx[i] for i in range(k)]
     upperBound = [graph.subsetMatrixIdx[i] + graph.subalignmentLengths[i] for i in range(k)] 
-    return atomizedCluster(lowerBound, upperBound)
+    graph.clusters = atomizedCluster(lowerBound, upperBound)
 
 def naiveClustering(graph):
     Configs.log("Building a naive left-justified clustering..")
     
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     lowerBound = [graph.subsetMatrixIdx[i] for i in range(k)]
     upperBound = [graph.subsetMatrixIdx[i] + graph.subalignmentLengths[i] for i in range(k)] 
-    return naiveCluster(lowerBound, upperBound)
+    graph.clusters = naiveCluster(lowerBound, upperBound)
 
 def atomizedCluster(lowerBound, upperBound):
     clusters = []

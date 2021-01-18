@@ -6,37 +6,60 @@ Created on May 28, 2020
 
 import os
 import random
+import time
 
-from align.decompose import pastastyle, kmh
-from helpers import treeutils
+from align.decompose import initial_tree, kmh
+from helpers import treeutils, sequenceutils
 from configuration import Configs
 
 
-def decomposeSequences(workingDir, sequencesPath):
-    baseName = os.path.splitext(os.path.basename(sequencesPath))[0]
-    subsetsDir = os.path.join(workingDir, "decomposition_{}".format(baseName))
-    if not os.path.exists(subsetsDir):
-        os.makedirs(subsetsDir)
-               
-    if Configs.guideTreePath is not None:
-        Configs.log("Decomposing {} with user guide tree {}".format(sequencesPath, Configs.guideTreePath))
-        Configs.log("Using target subset size of {}, and maximum number of subsets {}..".format(Configs.decompositionMaxSubsetSize, Configs.decompositionMaxNumSubsets))
-        subsetPaths = treeutils.decomposeGuideTree(subsetsDir, sequencesPath, Configs.guideTreePath, 
-                                                   Configs.decompositionMaxSubsetSize, Configs.decompositionMaxNumSubsets)
+def decomposeSequences(context):
+    time1 = time.time()
     
-    elif Configs.decompositionStrategy == "pastastyle":
-        Configs.log("Decomposing {} with PASTA-style initial tree..".format(sequencesPath))
-        Configs.log("Using target subset size of {}, and maximum number of subsets {}..".format(Configs.decompositionMaxSubsetSize, Configs.decompositionMaxNumSubsets))
-        guideTreePath, initialAlignPath = pastastyle.buildPastaInitialTree(subsetsDir, sequencesPath)
-        subsetPaths = treeutils.decomposeGuideTree(subsetsDir, sequencesPath, guideTreePath,
-                                                   Configs.decompositionMaxSubsetSize, Configs.decompositionMaxNumSubsets)
+    if len(context.subsetPaths) > 0:
+        Configs.log("Subset paths already provided, skipping decomposition..")
+    
+    elif len(context.subalignmentPaths) > 0:
+        context.subsetPaths = context.subalignmentPaths
+        Configs.log("Subalignment paths already provided, skipping decomposition..")
+    
+    else:
+        subsetsDir = os.path.join(context.workingDir, "decomposition")
+        context.subsetPaths = []
+        n = 1
+        while True:
+            filePath = os.path.join(subsetsDir, "subset_{}.txt".format(n))
+            if not os.path.exists(filePath):
+                break
+            Configs.log("Detected existing subset file {}".format(filePath))
+            context.subsetPaths.append(filePath)
+            n = n + 1
+        
+        if len(context.subsetPaths) == 0:
+            buildDecomposition(context, subsetsDir)
+    
+    time2 = time.time()  
+    Configs.log("Decomposed {} into {} subsets in {} sec..".format(context.sequencesPath, len(context.subsetPaths), time2-time1))
+
+def buildDecomposition(context, subsetsDir):  
+    if not os.path.exists(subsetsDir):
+        os.makedirs(subsetsDir)  
+    if context.unalignedSequences is None:
+        context.unalignedSequences = sequenceutils.readFromFasta(context.sequencesPath, removeDashes=True)    
+    
+    if (Configs.decompositionStrategy == "random" or context.guideTree == "random") and Configs.outputPath == context.outputFile:
+        context.subsetPaths = randomDecomposition(subsetsDir, context.unalignedSequences, Configs.decompositionMaxNumSubsets)
         
     elif Configs.decompositionStrategy == "kmh":
-        Configs.log("Decomposing {} with KMH..".format(sequencesPath))
+        Configs.log("Decomposing {} with KMH..".format(context.sequencesPath))
         Configs.log("Targetting {} subsets..".format(Configs.decompositionMaxNumSubsets))
-        subsetPaths = kmh.buildSubsetsKMH(subsetsDir, sequencesPath)
+        context.subsetPaths = kmh.buildSubsetsKMH(context, subsetsDir)
     
-    return subsetPaths
+    else:
+        guideTreePath  = initial_tree.buildInitialTree(context, subsetsDir, context.guideTree)
+        Configs.log("Using target subset size of {}, and maximum number of subsets {}..".format(Configs.decompositionMaxSubsetSize, Configs.decompositionMaxNumSubsets))
+        context.subsetPaths = treeutils.decomposeGuideTree(subsetsDir, context.sequencesPath, guideTreePath, 
+                                                   Configs.decompositionMaxSubsetSize, Configs.decompositionMaxNumSubsets)        
 
 def chooseSkeletonTaxa(sequences, skeletonSize, mode = "fulllength"):
     allTaxa = list(sequences.keys())
@@ -66,4 +89,14 @@ def chooseSkeletonTaxa(sequences, skeletonSize, mode = "fulllength"):
     remainingTaxa = allTaxa[skeletonSize:]
     return skeletonTaxa, remainingTaxa
 
-
+def randomDecomposition(subsetsDir, sequences, numSubsets):
+    allTaxa = list(sequences.keys())
+    random.shuffle(allTaxa)
+    
+    taxonSubsets = [allTaxa[i :: numSubsets] for i in range(numSubsets)]
+    subsetPaths = []
+    for n, subset in enumerate(taxonSubsets):
+        subsetPath = os.path.join(subsetsDir, "subset_{}.txt".format(n+1))
+        subsetPaths.append(subsetPath)                    
+        sequenceutils.writeFasta(sequences, subsetPath, subset) 
+    return subsetPaths

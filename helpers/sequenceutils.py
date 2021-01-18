@@ -4,7 +4,6 @@ Created on Sep 22, 2018
 @author: Vlad
 '''
 
-import string
 
 class Sequence:
     def __init__(self, tag, seq):
@@ -28,9 +27,26 @@ def readFromFasta(filePath, removeDashes = False):
                 currentSequence.seq = currentSequence.seq + line
 
     print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..")
-                                
     return sequences
 
+def readFromFastaOrdered(filePath, removeDashes = False):
+    sequences = []
+    currentSequence = None
+
+    with open(filePath) as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith('>'):                    
+                tag = line[1:]
+                currentSequence = Sequence(tag, "")
+                sequences.append(currentSequence)
+            else :
+                if(removeDashes):
+                    line = line.replace("-", "")
+                currentSequence.seq = currentSequence.seq + line
+
+    print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..")
+    return sequences
 
 def readFromPhylip(filePath, removeDashes = False):
     sequences = {}    
@@ -54,8 +70,7 @@ def readFromPhylip(filePath, removeDashes = False):
                     sequences[tag] = Sequence(tag, seq)
                 
     
-    print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..")
-                                
+    print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..")                                
     return sequences
 
 #reads match columns only
@@ -77,12 +92,11 @@ def readFromStockholm(filePath, includeInsertions = False):
                 for c in seq:
                     #if includeInsertions or not (c == '.' or c in string.ascii_lowercase):
                     if includeInsertions or (c == c.upper() and c != '.'):
-                        sequences[key].seq = sequences[key].seq + c
-    
+                        sequences[key].seq = sequences[key].seq + c    
     return sequences
 
-def writeFasta(alignment, filePath, taxa = None):
-        with open(filePath, 'w') as textFile:
+def writeFasta(alignment, filePath, taxa = None, append = False):
+        with open(filePath, 'a' if append else 'w') as textFile:
             if taxa is not None:
                 for tag in taxa:
                     if tag in alignment:
@@ -158,3 +172,48 @@ def inferDataType(filePath):
         dataType = "protein"
           
     return dataType
+
+def readSequenceLengthFromFasta(filePath):
+    with open(filePath) as f:
+        length = 0
+        readSequence = False
+        for line in f:
+            line = line.strip()
+            if line.startswith('>'):
+                if not readSequence:
+                    readSequence = True
+                    continue
+                else:
+                    return length
+            else:
+                length = length + len(line)
+
+
+
+def countGaps(alignFile):
+    counts = []
+    currentSequence = ""
+
+    with open(alignFile) as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith('>'): 
+                
+                if currentSequence is not None:
+                    if len(counts) == 0:
+                        counts = [0] * len(currentSequence)
+                    for i in range(len(counts)):
+                        if currentSequence[i] == '-':
+                            counts[i] = counts[i] + 1
+                                             
+                currentSequence = ""
+            else:
+                currentSequence = currentSequence + line
+        if currentSequence is not None:
+            if len(counts) == 0:
+                counts = [0] * len(currentSequence)
+            for i in range(len(counts)):
+                if currentSequence[i] == '-':
+                    counts[i] = counts[i] + 1
+    
+    return counts

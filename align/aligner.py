@@ -5,30 +5,66 @@ Created on May 29, 2020
 '''
 
 import os
-import time
 
-from align.decompose import decomposer 
+from align.alignment_context import AlignmentContext
+from align.decompose.decomposer import decomposeSequences 
 from align.merge.merger import mergeSubalignments
 from tools import external_tools
 from configuration import Configs
+from helpers import sequenceutils
+from tasks import task
 
-def alignSequences(workingDir, sequencesPath, outputPath):
-    time1 = time.time()
+
+def mainAlignmentTask():    
+    args = {"workingDir" : Configs.workingDir, "outputFile" : Configs.outputPath,
+            "subalignmentPaths" : Configs.subalignmentPaths, "sequencesPath" : Configs.sequencesPath,
+            "backbonePaths" : Configs.backbonePaths, "guideTree" : Configs.guideTree}
+    task = createAlignmentTask(args)
+    task.submitTask()
+    task.awaitTask()
     
-    subsetPaths = decomposer.decomposeSequences(workingDir, sequencesPath)
+def createAlignmentTask(args):
+    return task.Task(taskType = "runAlignmentTask", outputFile = args["outputFile"], taskArgs = args)
+
+def runAlignmentTask(**kwargs):
+    context = AlignmentContext(**kwargs)
+
+    if context.sequencesPath is not None:
+        Configs.log("Aligning sequences {}".format(context.sequencesPath))
     
-    time2 = time.time()  
-    Configs.log("Decomposed {} into {} subsets in {} sec..".format(sequencesPath, len(subsetPaths), time2-time1))
-    Configs.log("Building {} subalignments for {}".format(len(subsetPaths), sequencesPath))
+    decomposeSequences(context)
+    alignSubsets(context)
+    mergeSubalignments(context)
     
-    subsetAlignMap = {path : os.path.join(os.path.dirname(path), "mafft_{}".format(os.path.basename(path))) for path in subsetPaths}
-    external_tools.buildMafftAlignments(subsetAlignMap)
-    subalignmentPaths = list(subsetAlignMap.values())
+def alignSubsets(context):
+    if len(context.subalignmentPaths) > 0:
+        Configs.log("Subalignment paths already provided, skipping subalignments..")
+        return
     
-    time3 = time.time()  
-    Configs.log("Built {} subalignments for {} in {} sec..".format(len(subalignmentPaths), sequencesPath, time3-time2))
+    Configs.log("Building {} subalignments..".format(len(context.subsetPaths)))
+    subalignDir = os.path.join(context.workingDir, "subalignments")
+    if not os.path.exists(subalignDir):
+        os.makedirs(subalignDir)
     
-    mergeSubalignments(workingDir, subalignmentPaths, outputPath)
-    
-    time4 = time.time()  
-    Configs.log("Merged the {} subalignments for {} in {} sec..".format(len(subalignmentPaths), sequencesPath, time4-time3))
+    for file in context.subsetPaths:
+        subset = sequenceutils.readFromFasta(file)
+        subalignmentPath = os.path.join(subalignDir, "subalignment_{}".format(os.path.basename(file)))
+        context.subalignmentPaths.append(subalignmentPath)
+        
+        if os.path.exists(subalignmentPath):
+            Configs.log("Existing subalignment file detected: {}".format(subalignmentPath))       
+             
+        elif len(subset) <= Configs.mafftSize: #Configs.decompositionMaxSubsetSize:
+            Configs.log("Subset has {}/{} sequences, aligning with MAFFT..".format(len(subset), Configs.mafftSize))            
+            subalignmentTask = external_tools.buildMafftAlignment(file, subalignmentPath)
+            context.subalignmentTasks.append(subalignmentTask)
+            
+        else:
+            Configs.log("Subset has {}/{} sequences, recursively subaligning with MAGUS..".format(len(subset), Configs.mafftSize))
+            subalignmentDir = os.path.join(subalignDir, os.path.splitext(os.path.basename(subalignmentPath))[0])
+            subalignmentTask = createAlignmentTask({"outputFile" : subalignmentPath, "workingDir" : subalignmentDir, "sequencesPath" : file})   
+            context.subalignmentTasks.append(subalignmentTask)
+                
+    task.submitTasks(context.subalignmentTasks)
+    Configs.log("Prepared {} subset alignment tasks..".format(len(context.subalignmentTasks)))
+

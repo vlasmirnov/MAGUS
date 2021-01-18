@@ -13,7 +13,7 @@ from configuration import Configs
 def fmAlgorithm(graph):
     Configs.log("Finding graph trace with FM Algorithm..")
     
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     lowerBound = [graph.subsetMatrixIdx[i] for i in range(k)]
     upperBound = [graph.subsetMatrixIdx[i] + graph.subalignmentLengths[i] for i in range(k)]  
     
@@ -23,11 +23,7 @@ def fmAlgorithm(graph):
         graph.buildNodeEdgeDataStructureFromClusters()
     clusters, totalCost, cuts = fmPartition(graph, lowerBound, upperBound)
     
-    #Configs.log("Final clusters:")
-    #for cluster in clusters:
-    #    Configs.log("    {}".format(cluster)) 
-    
-    return clusters
+    graph.clusters = clusters
                     
 def fmPartitionWithCuts(graph, lowerBound, upperBound, cuts):
     allCuts = [lowerBound] + cuts + [upperBound]
@@ -40,7 +36,7 @@ def fmPartitionWithCuts(graph, lowerBound, upperBound, cuts):
     return clusters, cost, cuts
     
 def fmPartition(graph, lowerBound, upperBound, iterate = True):
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     
     finished = True
     cluster = []
@@ -69,7 +65,7 @@ def fmFindBestCut(graph, lowerBound, upperBound, startingCut, widthSumLimit):
     #Configs.log("    Lower bound: {}".format(graph.cutString(lowerBound)))
     #Configs.log("    Upper bound: {}".format(graph.cutString(upperBound)))
     #Configs.log("    Startng cut: {}".format(graph.cutString(startingCut)))
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     bestCut = startingCut
     bestCutGains, bestCutCost = populateGains(graph, lowerBound, upperBound, bestCut)
     
@@ -139,7 +135,7 @@ def fmFindBestCut(graph, lowerBound, upperBound, startingCut, widthSumLimit):
     return bestCut, bestCutCost
 
 def populateGains(graph, lowerBound, upperBound, cut):
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     gains = {}
     cutCost = 0
     
@@ -162,7 +158,7 @@ def populateGains(graph, lowerBound, upperBound, cut):
     return gains, int(cutCost/2)               
 
 def findNewBounds(graph, lowerBound, upperBound, cut, widthSumLimit):
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     lowerSize = sum([cut[i] - lowerBound[i] for i in range(k)])
     upperSize = sum([upperBound[i] - cut[i] for i in range(k)])
     portionWidth = getPortionWidth(lowerBound, upperBound)
@@ -203,7 +199,7 @@ def findNewBounds(graph, lowerBound, upperBound, cut, widthSumLimit):
     return newLowerBound, newUpperBound
 
 def updateGains(graph, lowerBound, upperBound, cut, gains, movedNodes, lowerUpdateBound, upperUpdateBound):
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
         
     for node in movedNodes:
         gains[node] = -1 * gains[node]
@@ -229,7 +225,7 @@ def updateGains(graph, lowerBound, upperBound, cut, gains, movedNodes, lowerUpda
                     upperUpdateBound[i] = min(upperUpdateBound[i], nbr)
 
 def getHeapGainUpdateList(graph, newLowerBound, newUpperBound, lowerUpdateBound, upperUpdateBound):
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     updateList = [[] for i in range(k)]      
     
     for i in range(k):
@@ -242,7 +238,7 @@ def getHeapGainUpdateList(graph, newLowerBound, newUpperBound, lowerUpdateBound,
     return updateList
 
 def updateHeapGainList(graph, cut, updateList, gains, heapGains, heapGainsVersions, heap, locked):
-    k = len(graph.subalignments)      
+    k = len(graph.context.subalignments)      
     
     for i in range(k):
         for j in updateList[i]:
@@ -262,7 +258,7 @@ def getPortionWidth(lowerBound, upperBound):
     return max([u-l for u,l in zip(upperBound, lowerBound)])
 
 def computeCutCost(graph, lowerBound, upperBound, cut):
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     cutCost = 0
     
     for j in range(k):

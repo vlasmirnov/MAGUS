@@ -5,25 +5,25 @@ Created on May 14, 2020
 '''
 
 import os
+import time
 
-from align.merge.alignment_graph import AlignmentGraph
-from align.merge.graph_builder import buildGraph
+
+from align.merge.graph_build.graph_builder import buildGraph
 from align.merge.graph_cluster.clusterer import clusterGraph
 from align.merge.graph_trace.tracer import findTrace
 from align.merge.optimizer import optimizeTrace
+from align.merge.alignment_writer import writeAlignment
+from configuration import Configs
 
-def mergeSubalignments(workingDir, subalignmentPaths, outputPath):
-    baseName = os.path.splitext(os.path.basename(outputPath))[0]
-    mergingDir = os.path.join(workingDir, "merging_{}".format(baseName))
-    if not os.path.exists(mergingDir):
-        os.makedirs(mergingDir)
+def mergeSubalignments(context):
+    Configs.log("Merging {} subaligments..".format(len(context.subalignmentPaths)))
+    time1 = time.time()  
     
-    graph = AlignmentGraph(mergingDir)
-    graph.loadSubalignments(subalignmentPaths)    
-    buildGraph(graph)
-    clusterGraph(graph)
-    findTrace(graph)
-    optimizeTrace(graph)
-    graph.clustersToAlignment(outputPath)
+    buildGraph(context)
+    clusterGraph(context.graph)
+    findTrace(context.graph)
+    optimizeTrace(context.graph)    
+    writeAlignment(context)
     
-    
+    time2 = time.time()  
+    Configs.log("Merged {} subalignments into {} in {} sec..".format(len(context.subalignmentPaths), context.outputFile, time2-time1))

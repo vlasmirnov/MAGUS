@@ -7,29 +7,31 @@ Created on Apr 14, 2020
 import time
 import argparse
 import sys
+import traceback
 
-from align.aligner import alignSequences
-from align.merge.merger import mergeSubalignments
+from align.aligner import mainAlignmentTask
 from configuration import buildConfigs, Configs
+from tasks import manager
 
-
-def main(args):   
+def main():   
     startTime = time.time()
-    buildConfigs(args)
+    args = parseArgs()
+    buildConfigs(args)    
     Configs.log("MAGUS was run with: {}".format(" ".join(sys.argv)))
     
-    if Configs.sequencesPath is not None:
-        Configs.log("Aligning sequences {}".format(Configs.sequencesPath))
-        alignSequences(Configs.workingDir, Configs.sequencesPath, Configs.outputPath)
-    else:
-        Configs.log("Merging {} sequences..".format(len(Configs.subsetPaths)))
-        mergeSubalignments(Configs.workingDir, Configs.subsetPaths, Configs.outputPath)
+    try:
+        manager.startTaskManager()
+        mainAlignmentTask()
+    except:
+        Configs.error("MAGUS aborted with an exception..")
+        Configs.error(traceback.format_exc())
+    finally:
+        manager.stopTaskManager()
     
     endTime = time.time()
     Configs.log("MAGUS finished in {} seconds..".format(endTime-startTime))
     
-
-if __name__ == '__main__':
+def parseArgs():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--directory", type=str,
@@ -48,8 +50,8 @@ if __name__ == '__main__':
                         help="Output alignment path", required=True)
     
     parser.add_argument("-t", "--guidetree", type=str,
-                        help="User guide tree for alignment",
-                        required=False, default=None)
+                        help="Guide tree for subset decomposition. fasttree (default), clustal, parttree, or path to user guide tree",
+                        required=False, default="fasttree")
 
     parser.add_argument("-np", "--numprocs", type=int,
                         help="Number of processors to use (default: # cpus available)",
@@ -107,5 +109,11 @@ if __name__ == '__main__':
     
     parser.add_argument("-f", "--inflationfactor", type=float,
                         help="MCL inflation factor", required=False, default=4)
+    
+    parser.add_argument("-c", "--constrain", type=str,
+                        help="Constrain MAGUS to respect subalignments (true or false)", required=False, default="true")
+       
+    return parser.parse_args()
 
-    main(parser.parse_args())
+if __name__ == '__main__':
+    main()

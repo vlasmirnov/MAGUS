@@ -12,11 +12,11 @@ from configuration import Configs
 def rgFastSearch(graph):
     Configs.log("Finding graph trace with fast region-growing search..")
     
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     lowerBound = [graph.subsetMatrixIdx[i] for i in range(k)]
     upperBound = [graph.subsetMatrixIdx[i] + graph.subalignmentLengths[i] for i in range(k)] 
     cuts = rgFastCluster(graph, lowerBound, upperBound, True)
-    return cutsToClusters(graph, cuts)
+    graph.clusters = cutsToClusters(graph, cuts)
 
 def rgFastCluster(graph, lowerBound, upperBound, enforceTrace = True):
     initialCuts = initialSplit(graph, lowerBound, upperBound, enforceTrace)
@@ -33,7 +33,7 @@ def rgFastCluster(graph, lowerBound, upperBound, enforceTrace = True):
     return cuts
         
 def initialSplit(graph, lowerBound, upperBound, enforceTrace = True):
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     baseIdx = max(range(k), key = lambda x : upperBound[x] - lowerBound[x])
     #baseIdx = min(range(k), key = lambda x : upperBound[x] - lowerBound[x] if upperBound[x] - lowerBound[x] >= 2 else float('inf'))
     baseLength = upperBound[baseIdx] - lowerBound[baseIdx]
@@ -48,7 +48,7 @@ def initialSplit(graph, lowerBound, upperBound, enforceTrace = True):
     return cuts
 
 def initialSplitExpansion(graph, lowerBound, upperBound, baseIdx, baseLength):
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     clusters = [[lowerBound[baseIdx] + i] for i in range(baseLength)]
     #idxSets = [set([baseIdx]) for i in range(baseLength)]
     idxSets = {(i, baseIdx) : lowerBound[baseIdx] + i for i in range(baseLength)}
@@ -174,7 +174,7 @@ def addBounds(graph, boundsMap, baseLength, idx, node):
     
 
 def initialSplitExpansionSimple(graph, lowerBound, upperBound, baseIdx, baseLength):
-    k = len(graph.subalignments)
+    k = len(graph.context.subalignments)
     clusters = [[lowerBound[baseIdx] + i] for i in range(baseLength)]
     #idxSets = [set([baseIdx]) for i in range(baseLength)]
     idxSets = {(i, baseIdx) : lowerBound[baseIdx] + i for i in range(baseLength)}

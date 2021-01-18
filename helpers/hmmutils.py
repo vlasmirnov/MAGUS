@@ -6,63 +6,116 @@ Created on May 28, 2020
 
 import re
 import os
-import shutil
-import concurrent.futures
+import math
 from tools import external_tools
+from configuration import Configs
+from helpers import sequenceutils
 
-def buildHmmScores(sequencesHmmsPathsMap, queriesPath):
-    print("Launching {} HMM scoring jobs with {} workers..".format(len(sequencesHmmsPathsMap), os.cpu_count()))
-    sequenceScores = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers = os.cpu_count()) as executor:
-        jobs = {executor.submit(getHmmScores, sequencesHmmsPathsMap[sequencePath], queriesPath) : sequencePath
-                   for sequencePath in sequencesHmmsPathsMap}
-        for job in concurrent.futures.as_completed(jobs):
-            try:
-                taxonScores = job.result()
-                sequenceScores[jobs[job]] = taxonScores
-            except Exception as exc:
-                print("Worker for HMM scores {} threw an exception:\n{}".format(jobs[job], exc))
-                raise
-    print("All HMM scores workers done..")
-    return sequenceScores
-
-def getHmmScores(hmmDir, queriesPath):
-    searchPath = os.path.join(hmmDir, "hmm_search.txt")
-    hmmPath = os.path.join(hmmDir, "hmm_model.txt")
-    external_tools.runHmmSearch(hmmPath, queriesPath, hmmDir, searchPath)
-    subsetScores = readSearchFile(searchPath)
+'''
+def buildHmmScores(hmmPath, queriesPath, scoreMap):
+    #tasks = [getHmmScores(hmmPath, queriesPath) for hmmPath in hmmPaths]
+    queries = sequenceutils.readFromFasta(queriesPath, removeDashes = True)
+    baseName = os.path.basename(queriesPath).split('.')[0]
+    dirName = os.path.dirname(hmmPath)
+    
     taxonScores = {}
-    for taxon, scores in subsetScores.items():
-        taxonScores[taxon] = scores[1]
-    return taxonScores
+    for taxon in queries:
+        inputName = os.path.join(dirName, "{}.txt".format(baseName))
+        outputName = os.path.join(dirName, "{}_score.txt".format(baseName))
+        if os.path.exists(outputName):
+            os.remove(outputName)
+        sequenceutils.writeFasta({taxon : queries[taxon]}, inputName)
+        getHmmScores(hmmPath, inputName, outputName).run()
+        subsetScores = readSearchFile(outputName)
+        taxonScores[taxon] = subsetScores[taxon][1]
+    scoreMap[hmmPath] = taxonScores
+'''
 
+def buildHmmScores(hmmPaths, queriesPath, scoreFileHmmFileMap):
+    #tasks = [getHmmScores(hmmPath, queriesPath) for hmmPath in hmmPaths]
+    queries = sequenceutils.readFromFasta(queriesPath, removeDashes = True)
+    baseName = os.path.basename(queriesPath).split('.')[0]
+    dirName = os.path.join(os.path.dirname(queriesPath), "chunks_{}".format(baseName))
+    if not os.path.exists(dirName):
+        os.makedirs(dirName)
+    
+    chunkSize = 1000
+    
+    taxa = list(queries.keys())
+    inputOutputs = []
+    for i in range(math.ceil(len(taxa) / chunkSize)):
+        chunk = taxa[i*chunkSize : min(len(taxa), (i+1)*chunkSize)]
+        inputName = os.path.join(dirName, "{}_chunk_{}.txt".format(baseName, i+1))
+        sequenceutils.writeFasta(queries, inputName, chunk)
+        for hmmPath in hmmPaths:
+            outputName = os.path.join(os.path.dirname(hmmPath), "{}_chunk_{}_score.txt".format(baseName, i+1))
+            inputOutputs.append((hmmPath, inputName, outputName))
+            scoreFileHmmFileMap[outputName] = hmmPath
+    
+    tasks = [getHmmScores(hmmPath, inputPath, outputPath) for hmmPath, inputPath, outputPath in inputOutputs]
+    return tasks
+
+def getHmmScores(hmmPath, queriesPath, scorePath):
+    workingDir = os.path.dirname(hmmPath)
+    #searchPath = os.path.join(workingDir, "hmm_search.txt")
+    task = external_tools.runHmmSearch(hmmPath, queriesPath, workingDir, scorePath)
+    return task
+
+def readHmmScores(searchFiles):
+    sequenceScores = {}
+    for file in searchFiles:
+        subsetScores = readSearchFile(file)
+        taxonScores = {taxon : scores[1] for taxon, scores in subsetScores.items()}
+        sequenceScores[file] = taxonScores
+    return sequenceScores
+    
 def buildHmms(sequencesHmmsPathsMap):
-    print("Launching {} HMM builds with {} workers..".format(len(sequencesHmmsPathsMap), os.cpu_count()))
+    tasks = [buildHmmOverAlignment(sequencePath, hmmPath) for sequencePath, hmmPath in sequencesHmmsPathsMap.items()]
+    return tasks
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers = os.cpu_count()) as executor:
-        jobs = {executor.submit(buildHmmOverAlignment, sequencesHmmsPathsMap[sequencePath], sequencePath) : sequencePath
-                   for sequencePath in sequencesHmmsPathsMap}
-        for job in concurrent.futures.as_completed(jobs):
-            try:
-                job.result()
-            except Exception as exc:
-                print("Worker for HMM {} threw an exception:\n{}".format(jobs[job], exc))
-                raise
-    print("All HMM workers done..")
-    
-def buildHmmOverAlignment(hmmDir, alignmentPath):
-    if os.path.exists(hmmDir):
-        shutil.rmtree(hmmDir)
-    os.makedirs(hmmDir)  
-    hmmPath = os.path.join(hmmDir, "hmm_model.txt")
-    external_tools.runHmmBuild(alignmentPath, hmmDir, hmmPath)
-    return hmmPath
+def buildHmmOverAlignment(sequencePath, hmmPath):
+    workingDir = os.path.dirname(hmmPath)
+    task = external_tools.runHmmBuild(sequencePath, workingDir, hmmPath)
+    return task
 
-def hmmAlignQueries(hmmDir, queriesPath, outputAlignmentPath):
-    hmmPath = os.path.join(hmmDir, "hmm_model.txt")
-    #alignResultPath = os.path.join(hmmDir, "hmm_align_result.txt")
-    external_tools.runHmmAlign(hmmPath, queriesPath, hmmDir, outputAlignmentPath)
-    return outputAlignmentPath
+def combineHmmAlignments(alignFiles, outputAlignmentPath, includeInsertions):
+    alignment = {}
+    for file in alignFiles:
+        alignment.update(sequenceutils.readFromStockholm(file, includeInsertions))
+    sequenceutils.writeFasta(alignment, outputAlignmentPath, None)
+
+def mergeHmmAlignments(alignFiles, outputAlignmentPath, includeInsertions):
+    for file in alignFiles:
+        alignment = sequenceutils.readFromStockholm(file, includeInsertions)
+        sequenceutils.writeFasta(alignment, outputAlignmentPath, None, True)
+
+def hmmAlignQueries(hmmPath, queriesPath):
+    queries = sequenceutils.readFromFasta(queriesPath, removeDashes = True)
+    baseName = os.path.basename(queriesPath).split('.')[0]
+    dirName = os.path.join(os.path.dirname(queriesPath), "chunks_{}".format(baseName))
+    if not os.path.exists(dirName):
+        os.makedirs(dirName)
+    chunkSize = 1000
+    
+    taxa = list(queries.keys())
+    alignFiles = {}
+    for i in range(math.ceil(len(taxa) / chunkSize)):
+        chunk = taxa[i*chunkSize : min(len(taxa), (i+1)*chunkSize)]
+        inputName = os.path.join(dirName, "{}_chunk_{}.txt".format(baseName, i+1))
+        outputName = os.path.join(dirName, "{}_chunk_{}_aligned.txt".format(baseName, i+1))
+        sequenceutils.writeFasta(queries, inputName, chunk)
+        alignFiles[inputName] = outputName
+    
+    tasks = []
+    for inputPath, outputPath in alignFiles.items():
+        task = buildHmmAlignment(hmmPath, inputPath, outputPath)
+        tasks.append(task)
+    return tasks
+
+def buildHmmAlignment(hmmPath, queriesPath, outputAlignmentPath):
+    workingDir = os.path.dirname(hmmPath)
+    task = external_tools.runHmmAlign(hmmPath, queriesPath, workingDir, outputAlignmentPath)
+    return task
 
 #from PASTA repo
 def readSearchFile(searchFilePath):

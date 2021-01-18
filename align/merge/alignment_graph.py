@@ -4,63 +4,57 @@ Created on Apr 14, 2020
 @author: Vlad
 '''
 
+import os
 
 from helpers import sequenceutils
 from configuration import Configs
+import threading
+
 
 class AlignmentGraph:
     
-    
-    def __init__(self, workingDir):
-        self.workingDir = workingDir
-        self.subsetPaths = None
-        self.graphPath = None
-        self.clusterPath = None
+    def __init__(self, context):
+        self.context = context
+        self.workingDir = os.path.join(self.context.workingDir, "graph")
+        self.graphPath = os.path.join(self.workingDir, "graph.txt")
+        self.clusterPath = os.path.join(self.workingDir, "clusters.txt")
+        self.tracePath = os.path.join(self.workingDir, "trace.txt")
+        self.packedAlignmentPath = os.path.join(self.workingDir, "packed_alignment.txt")
+        self.alignmentMaskPath = os.path.join(self.workingDir, "alignment_mask.txt")
+        self.maskedSequencesPath = os.path.join(self.workingDir, "masked_sequences.txt")
+        if not os.path.exists(self.workingDir):
+            os.makedirs(self.workingDir)
         
-        self.unalignment = {}
-        self.subalignments = []
-        self.taxonSubalignmentMap = {}
         self.subalignmentLengths = []
         self.subsetMatrixIdx = []
         self.matSubPosMap = []
         
         self.matrixSize = 0
         self.matrix = None
-        self.matrixLock = None
+        self.matrixLock = threading.Lock()
         self.nodeEdges = None
         
         self.clusters = []
         
+    def initializeMatrix(self):
+        if Configs.constrain:
+            self.subalignmentLengths = [sequenceutils.readSequenceLengthFromFasta(file) for file in self.context.subalignmentPaths]
+        else:
+            self.subalignmentLengths = [len(self.context.unalignedSequences[s[0]].seq) for s in self.context.subalignments]
         
-    def loadSubalignments(self, subsetPaths):
-        '''
-        self.subalignments = []
-        for filePath in subsetPaths:
-            baseName = os.path.basename(filePath)
-            cleanFilePath = os.path.join(Configs.workingDir, "clean_{}".format(baseName))
-            sequenceutils.cleanGapColumns(filePath, cleanFilePath)
-            self.subalignments.append(sequenceutils.readFromFasta(cleanFilePath))
-        '''
-        self.subsetPaths = subsetPaths
-        self.subalignments = [sequenceutils.readFromFasta(filePath) for filePath in subsetPaths]
-        for i, subalignment in enumerate(self.subalignments):              
-            for taxon in subalignment:
-                self.taxonSubalignmentMap[taxon] = i
-                self.unalignment[taxon] = sequenceutils.Sequence(taxon, subalignment[taxon].seq.replace('-',''))
-        
-        self.subalignmentLengths = [len(next(iter(subset.values())).seq) for subset in self.subalignments]
-        self.subsetMatrixIdx = [0] * len(self.subalignments)
-        for k in range(1, len(self.subalignments)):        
+        self.matrixSize = sum(self.subalignmentLengths)    
+        self.subsetMatrixIdx = [0] * len(self.subalignmentLengths)
+        for k in range(1, len(self.subalignmentLengths)):        
             self.subsetMatrixIdx[k] = self.subsetMatrixIdx[k-1] + self.subalignmentLengths[k-1]
-        
-        self.matrixSize = sum(self.subalignmentLengths)
         
         self.matSubPosMap = [0] * self.matrixSize
         i = 0
-        for k in range(len(self.subalignments)):
+        for k in range(len(self.subalignmentLengths)):
             for j in range(self.subalignmentLengths[k]):
                 self.matSubPosMap[i] = (k, j)
                 i = i + 1
+        
+        self.matrix = [{} for i in range(self.matrixSize)]
     
     def writeGraphToFile(self, filePath):
         with open(filePath, 'w') as textFile:
@@ -76,6 +70,11 @@ class AlignmentGraph:
                 tokens = [int(token) for token in line.strip().split()]
                 self.matrix[tokens[0]][tokens[1]] = tokens[2]
         Configs.log("Read matrix from {}".format(filePath))
+    
+    def writeClustersToFile(self, filePath):
+        with open(filePath, 'w') as textFile:
+            for cluster in self.clusters:
+                textFile.write("{}\n".format(" ".join([str(c) for c in cluster])))
         
     def readClustersFromFile(self, filePath):
         self.clusters = []
@@ -88,7 +87,7 @@ class AlignmentGraph:
     
     def buildNodeEdgeDataStructure(self):
         Configs.log("Preparing node edge data structure..")
-        k = len(self.subalignments)
+        k = len(self.subalignmentLengths)
         self.nodeEdges = {}
         
         for a in range(self.matrixSize):
@@ -105,7 +104,7 @@ class AlignmentGraph:
     
     def buildNodeEdgeDataStructureFromClusters(self):
         Configs.log("Preparing node edge data structure..")
-        k = len(self.subalignments)
+        k = len(self.subalignmentLengths)
         self.nodeEdges = {}
         
         Configs.log("Using {} pre-existing clusters to simplify alignment graph..".format(len(self.clusters)))
@@ -124,56 +123,6 @@ class AlignmentGraph:
                 for i in range(k):
                     self.nodeEdges[a][i].sort(key = lambda pair: pair[0])
         Configs.log("Prepared node edge data structure..")
-        
-    def clustersToAlignment(self, filePath):
-        finalAlignment = {}
-        for subset in self.subalignments:
-            for taxon in subset:
-                finalAlignment[taxon] = sequenceutils.Sequence(taxon, "")
-        
-        lastIdx = {}
-        for cluster in self.clusters:
-            for b in cluster:
-                bsub, bpos = self.matSubPosMap[b]
-                bposlast = lastIdx.get(bsub, -1)
-                
-                for p in range(bposlast + 1, bpos):
-                    for i in range(len(self.subalignments)):
-                        for taxon in self.subalignments[i]:
-                            if i == bsub:
-                                finalAlignment[taxon].seq = finalAlignment[taxon].seq + self.subalignments[bsub][taxon].seq[p]
-                            else:
-                                finalAlignment[taxon].seq = finalAlignment[taxon].seq + '-'
-                
-                lastIdx[bsub] = bpos
-            
-            clusterSets = set()    
-            for b in cluster:
-                bsub, bpos = self.matSubPosMap[b]
-                clusterSets.add(bsub)
-                for taxon in self.subalignments[bsub]:
-                    finalAlignment[taxon].seq = finalAlignment[taxon].seq + self.subalignments[bsub][taxon].seq[bpos]
-                #lastIdx[bsub] = lastIdx[bsub] + 1
-            
-            for i in range(len(self.subalignments)):
-                if i not in clusterSets:
-                    for taxon in self.subalignments[i]:
-                        finalAlignment[taxon].seq = finalAlignment[taxon].seq + '-'
-                
-        
-        for bsub in range(len(self.subalignments)):
-            bposlast = lastIdx.get(bsub, -1)
-                        
-            for p in range(bposlast + 1, self.subalignmentLengths[bsub]):
-                for i in range(len(self.subalignments)):
-                    for taxon in self.subalignments[i]:
-                        if i == bsub:
-                            finalAlignment[taxon].seq = finalAlignment[taxon].seq + self.subalignments[bsub][taxon].seq[p]
-                        else:
-                            finalAlignment[taxon].seq = finalAlignment[taxon].seq + '-'        
-                                
-        sequenceutils.writeFasta(finalAlignment, filePath)  
-        Configs.log("Wrote final output alignment to {}".format(filePath))
 
     def cutString(self, cut):
         stringCut = list(cut)
@@ -204,11 +153,11 @@ class AlignmentGraph:
     
         return int(cutCost/2) 
     
-    def addSingletonClusters(self, clusters):
+    def addSingletonClusters(self):
         newClusters = []
         
         lastIdx = list(self.subsetMatrixIdx) 
-        for cluster in clusters:
+        for cluster in self.clusters:
             for a in cluster:
                 #print(a)
                 asub, apos = self.matSubPosMap[a]                
@@ -219,38 +168,9 @@ class AlignmentGraph:
         for i in range(len(lastIdx)):
             for node in range(lastIdx[i], self.subsetMatrixIdx[i] + self.subalignmentLengths[i]):
                 newClusters.append([node])
+        self.clusters = newClusters
         return newClusters
-        
-    '''
-    def plotClusterHistogram(self, clusters, numBins, outputFile):
-        import matplotlib.pyplot as plt
-        from matplotlib import colors
-        fig, ax = plt.subplots(1, 1, tight_layout=True)
-        plt.rcParams.update({'font.size': 15})
-        
-        totalClusters = clusters[:]
-        nodeClusters = {}
-        for n, cluster in enumerate(clusters):
-            for a in cluster:
-                nodeClusters[a] = n
-        for a in range(self.matrixSize):
-            if a not in nodeClusters:
-                totalClusters.append([a])
-        print("Plotting out {} clusters..".format(len(totalClusters)))
-        print("Recomputed clustering cost {}".format(self.computeClusteringCost(totalClusters)))
-        x = [len(c) for c in totalClusters]
-        
-        ax.set_facecolor((0.9,0.9,0.9))        
-        N, bins, patches = plt.hist(x, bins=numBins)
-
-        fracs = N / N.max()        
-        norm = colors.Normalize(fracs.min(), fracs.max())
-        
-        for thisfrac, thispatch in zip(fracs, patches):
-            color = plt.cm.magma(norm(thisfrac))
-            #thispatch.set_facecolor(color)
-        
-        fig.canvas.draw()
-        #fig.savefig(outputFile, bbox_inches = 'tight', pad_inches = 0, dpi=300)
-        fig.savefig(outputFile, bbox_inches = 'tight', pad_inches = 0)
-    '''
+    
+    
+    
+    
