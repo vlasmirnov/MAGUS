@@ -4,7 +4,7 @@ Created on Nov 1, 2020
 @author: Vlad
 '''
 
-from tasks.manager import TaskManager
+from tasks.manager import TaskManager, runTask
 from configuration import Configs
 
 def submitTasks(tasks):
@@ -38,25 +38,14 @@ def checkWhatFinished(tasks):
 def observeTaskManager():
     TaskManager.observerWaiting = True
     TaskManager.managerSignal.set()
-    TaskManager.observerSignal.wait()
+    TaskManager.observerSignal.wait(10)
     with TaskManager.managerLock:
         TaskManager.observerWaiting = False
         TaskManager.observerSignal.clear()
         checkTaskManager()
         task, TaskManager.observerTask = TaskManager.observerTask, None
     if task is not None:
-        try:
-            task.run()
-            with TaskManager.managerLock:
-                TaskManager.runningTasks.remove(task)
-                TaskManager.finishedTasks.add(task)
-        except:
-            with TaskManager.managerLock:
-                TaskManager.runningTasks.remove(task)
-                TaskManager.failedTasks.add(task)
-            raise
-        finally:
-            TaskManager.observerSignal.set()
+        runTask(task)
             
         #manager.setTaskFinished(task)
 

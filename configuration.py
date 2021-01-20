@@ -51,6 +51,7 @@ class Configs:
     
     logPath = None
     errorPath = None
+    debugPath = None
     
     numCores = 1
     searchHeapLimit = 5000
@@ -65,6 +66,11 @@ class Configs:
     def error(msg, path = None):
         Configs.log(msg)
         path = Configs.errorPath if path is None else path
+        Configs.writeMsg(msg, path)
+    
+    @staticmethod
+    def debug(msg, path = None):
+        path = Configs.debugPath if path is None else path
         Configs.writeMsg(msg, path)
     
     @staticmethod
@@ -140,3 +146,4 @@ def buildConfigs(args):
     
     Configs.logPath = os.path.join(Configs.workingDir, "log.txt")    
     Configs.errorPath = os.path.join(Configs.workingDir, "log_errors.txt")
+    Configs.debugPath = os.path.join(Configs.workingDir, "log_debug.txt")
