@@ -5,16 +5,16 @@ Multiple Sequence Alignment using Graph Clustering
 
 ## Purpose and Functionality
 MAGUS is a tool for piecewise large-scale multiple sequence alignment.  
-The dataset is divided into subsets, which are independently aligned with a base method (currently MAFFT -linsi). These subalignments are merged together by clustering an alignment graph, which is constructed from a set of backbone alignments. This process allows MAGUS to effectively boost MAFFT -linsi to over a million sequences.
+The dataset is divided into subsets, which are independently aligned with a base method (currently MAFFT -linsi). These subalignments are merged together with the Graph Clustering Merger (GCM). GCM builds the final alignment by clustering an alignment graph, which is constructed from a set of backbone alignments. This process allows MAGUS to effectively boost MAFFT -linsi to over a million sequences.
 
-The basic procedure is outlined below. 
-* The input is a set of unaligned sequences. Alternatively, the user can provide a set of multiple sequence alignments and skip the next two steps.
-* The dataset is decomposed into subsets.
-* The subsets are aligned with MAFFT -linsi. 
-* A set of backbone alignments are generated with MAFFT -linsi (or provided by the user).
-* The backbones are compiled into an alignment graph.
-* The graph is clustered with MCL.
-* The clusters are resolved into a final alignment.
+The basic procedure is outlined below. Steps 4-7 are GCM.
+1. The input is a set of unaligned sequences. Alternatively, the user can provide a set of multiple sequence alignments and skip the next two steps.
+2. The dataset is decomposed into subsets.
+3. The subsets are aligned with MAFFT -linsi. 
+4. A set of backbone alignments are generated with MAFFT -linsi (or provided by the user).
+5. The backbones are compiled into an alignment graph.
+6. The graph is clustered with MCL.
+7. The clusters are resolved into a final alignment.
 
 - - - -
 
