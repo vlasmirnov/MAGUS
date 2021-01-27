@@ -93,7 +93,7 @@ def runFastTree(fastaFilePath, workingDir, outputPath, mode = "normal", intree =
         args.extend(["-fastest", "-nosupport"]) 
     elif mode == "faster":
         args.extend(["-fastest", "-nosupport", "-mlnni", "4" ]) 
-    elif mode == "fastest":
+    elif mode == "noml":
         args.extend(["-fastest", "-nosupport", "-noml"])
     
     args.extend([fastaFilePath, ">", tempPath])

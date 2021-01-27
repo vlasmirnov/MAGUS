@@ -50,7 +50,7 @@ def parseArgs():
                         help="Output alignment path", required=True)
     
     parser.add_argument("-t", "--guidetree", type=str,
-                        help="Guide tree for subset decomposition. fasttree (default), clustal, parttree, or path to user guide tree",
+                        help="Guide tree for subset decomposition. fasttree (default), fasttree-noml, clustal, parttree, or path to user guide tree",
                         required=False, default="fasttree")
 
     parser.add_argument("-np", "--numprocs", type=int,
@@ -112,6 +112,12 @@ def parseArgs():
     
     parser.add_argument("-c", "--constrain", type=str,
                         help="Constrain MAGUS to respect subalignments (true or false)", required=False, default="true")
+    
+    parser.add_argument("--onlyguidetree", type=str,
+                        help="Only output the guide tree (true or false)", required=False, default="false")
+    
+    parser.add_argument("--recurse", type=str,
+                        help="Allow MAGUS to recurse on large subsets (true or false)", required=False, default="true")
        
     return parser.parse_args()
 

@@ -5,6 +5,7 @@ Created on May 29, 2020
 '''
 
 import os
+import shutil
 
 from align.alignment_context import AlignmentContext
 from align.decompose.decomposer import decomposeSequences 
@@ -33,9 +34,14 @@ def runAlignmentTask(**kwargs):
         Configs.log("Aligning sequences {}".format(context.sequencesPath))
     
     decomposeSequences(context)
+    if Configs.onlyGuideTree:
+        Configs.log("Outputting only the guide tree, as requested..")
+        shutil.copyfile(os.path.join(context.workingDir, "decomposition", "initial_tree", "initial_tree.tre"), context.outputFile)
+        return
+    
     alignSubsets(context)
     mergeSubalignments(context)
-    
+
 def alignSubsets(context):
     if len(context.subalignmentPaths) > 0:
         Configs.log("Subalignment paths already provided, skipping subalignments..")
@@ -45,6 +51,8 @@ def alignSubsets(context):
     subalignDir = os.path.join(context.workingDir, "subalignments")
     if not os.path.exists(subalignDir):
         os.makedirs(subalignDir)
+        
+    mafftThreshold = max(Configs.mafftSize, Configs.decompositionMaxSubsetSize)
     
     for file in context.subsetPaths:
         subset = sequenceutils.readFromFasta(file)
@@ -54,13 +62,13 @@ def alignSubsets(context):
         if os.path.exists(subalignmentPath):
             Configs.log("Existing subalignment file detected: {}".format(subalignmentPath))       
              
-        elif len(subset) <= Configs.mafftSize: #Configs.decompositionMaxSubsetSize:
-            Configs.log("Subset has {}/{} sequences, aligning with MAFFT..".format(len(subset), Configs.mafftSize))            
+        elif len(subset) <= mafftThreshold or not Configs.recurse:
+            Configs.log("Subset has {}/{} sequences, aligning with MAFFT..".format(len(subset), mafftThreshold))            
             subalignmentTask = external_tools.buildMafftAlignment(file, subalignmentPath)
             context.subalignmentTasks.append(subalignmentTask)
             
         else:
-            Configs.log("Subset has {}/{} sequences, recursively subaligning with MAGUS..".format(len(subset), Configs.mafftSize))
+            Configs.log("Subset has {}/{} sequences, recursively subaligning with MAGUS..".format(len(subset), mafftThreshold))
             subalignmentDir = os.path.join(subalignDir, os.path.splitext(os.path.basename(subalignmentPath))[0])
             subalignmentTask = createAlignmentTask({"outputFile" : subalignmentPath, "workingDir" : subalignmentDir, "sequencesPath" : file})   
             context.subalignmentTasks.append(subalignmentTask)
