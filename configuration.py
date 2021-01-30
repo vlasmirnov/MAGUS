@@ -38,6 +38,8 @@ class Configs:
     mclInflationFactor = 4
     
     constrain = True
+    onlyGuideTree = False
+    recurse = True
     
     clustalPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/clustal/clustalo")
     mafftPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mafft/mafft")
@@ -131,7 +133,7 @@ def buildConfigs(args):
     Configs.decompositionSkeletonSize = args.decompskeletonsize
     Configs.dataType = args.datatype
     
-    Configs.graphBuildMethod = args.graphbuildmethod #if len(Configs.backbonePaths) == 0 else "user"
+    Configs.graphBuildMethod = args.graphbuildmethod
     Configs.graphBuildHmmExtend = args.graphbuildhmmextend.lower() == "true"
     Configs.graphBuildRestrict = args.graphbuildrestrict.lower() == "true"
     Configs.graphClusterMethod = args.graphclustermethod
@@ -143,6 +145,8 @@ def buildConfigs(args):
     Configs.mclInflationFactor = args.inflationfactor
     
     Configs.constrain = args.constrain.lower() == "true"
+    Configs.onlyGuideTree = args.onlyguidetree.lower() == "true"
+    Configs.recurse = args.recurse.lower() == "true"
     
     Configs.logPath = os.path.join(Configs.workingDir, "log.txt")    
     Configs.errorPath = os.path.join(Configs.workingDir, "log_errors.txt")

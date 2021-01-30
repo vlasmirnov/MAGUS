@@ -37,6 +37,11 @@ def buildInitialTree(context, workingDir, treeType):
         alignPath = os.path.join(tempDir, "initial_align.txt")
         buildInitialAlignment(context.unalignedSequences, tempDir, Configs.decompositionSkeletonSize, None, alignPath)
         external_tools.runFastTree(alignPath, tempDir, outputTreePath, "fast").run()
+    elif treeType is None or treeType.lower() == "fasttree-noml": 
+        Configs.log("Building PASTA-style FastTree (NO ML) initial tree on {} with skeleton size {}..".format(context.sequencesPath, Configs.decompositionSkeletonSize))
+        alignPath = os.path.join(tempDir, "initial_align.txt")
+        buildInitialAlignment(context.unalignedSequences, tempDir, Configs.decompositionSkeletonSize, None, alignPath)
+        external_tools.runFastTree(alignPath, tempDir, outputTreePath, "noml").run()
     elif treeType.lower() == "parttree":
         Configs.log("Building MAFFT PartTree initial tree on {}..".format(context.sequencesPath))
         taxa = list(context.unalignedSequences.keys())
