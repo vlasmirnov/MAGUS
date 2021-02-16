@@ -28,19 +28,18 @@ def createAlignmentTask(args):
     return task.Task(taskType = "runAlignmentTask", outputFile = args["outputFile"], taskArgs = args)
 
 def runAlignmentTask(**kwargs):
-    context = AlignmentContext(**kwargs)
-
-    if context.sequencesPath is not None:
-        Configs.log("Aligning sequences {}".format(context.sequencesPath))
-    
-    decomposeSequences(context)
-    if Configs.onlyGuideTree:
-        Configs.log("Outputting only the guide tree, as requested..")
-        shutil.copyfile(os.path.join(context.workingDir, "decomposition", "initial_tree", "initial_tree.tre"), context.outputFile)
-        return
-    
-    alignSubsets(context)
-    mergeSubalignments(context)
+    with AlignmentContext(**kwargs) as context:
+        if context.sequencesPath is not None:
+            Configs.log("Aligning sequences {}".format(context.sequencesPath))
+        
+        decomposeSequences(context)
+        if Configs.onlyGuideTree:
+            Configs.log("Outputting only the guide tree, as requested..")
+            shutil.copyfile(os.path.join(context.workingDir, "decomposition", "initial_tree", "initial_tree.tre"), context.outputFile)
+            return
+        
+        alignSubsets(context)
+        mergeSubalignments(context)
 
 def alignSubsets(context):
     if len(context.subalignmentPaths) > 0:

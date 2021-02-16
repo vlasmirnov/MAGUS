@@ -118,6 +118,9 @@ def parseArgs():
     
     parser.add_argument("--recurse", type=str,
                         help="Allow MAGUS to recurse on large subsets (true or false)", required=False, default="true")
+    
+    parser.add_argument("--alignsizelimit", type=float,
+                        help="Size threshold for alignment compression (in GB)", required=False, default=100)
        
     return parser.parse_args()
 

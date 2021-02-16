@@ -57,6 +57,7 @@ class Configs:
     
     numCores = 1
     searchHeapLimit = 5000
+    alignmentSizeLimit = 100
     
     @staticmethod
     def log(msg, path = None):
@@ -151,3 +152,5 @@ def buildConfigs(args):
     Configs.logPath = os.path.join(Configs.workingDir, "log.txt")    
     Configs.errorPath = os.path.join(Configs.workingDir, "log_errors.txt")
     Configs.debugPath = os.path.join(Configs.workingDir, "log_debug.txt")
+    
+    Configs.alignmentSizeLimit = args.alignsizelimit

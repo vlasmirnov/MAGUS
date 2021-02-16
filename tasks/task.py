@@ -17,7 +17,8 @@ class Task:
     functionModuleMap = {"runCommand" : "tools.external_tools",
                          "runAlignmentTask" : "align.aligner",
                          "recordGapCounts" : "align.merge.alignment_writer",
-                         "buildInducedSubalignment" : "align.merge.alignment_writer"}
+                         "buildInducedSubalignment" : "align.merge.alignment_writer",
+                         "compressSubalignment" : "align.merge.alignment_writer"}
     
     def __init__(self, taskType, outputFile, taskArgs, **kwargs):
         self.taskType = taskType
@@ -37,6 +38,10 @@ class Task:
     
     def awaitTask(self):
         awaitTasks([self])
+        
+    def submitAndAwaitTask(self):
+        self.submitTask()
+        self.awaitTask()
         
     def run(self):
         try:

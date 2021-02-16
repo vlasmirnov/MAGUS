@@ -19,9 +19,11 @@ class AlignmentGraph:
         self.graphPath = os.path.join(self.workingDir, "graph.txt")
         self.clusterPath = os.path.join(self.workingDir, "clusters.txt")
         self.tracePath = os.path.join(self.workingDir, "trace.txt")
+        #self.compressedTracePath = os.path.join(self.workingDir, "trace_compressed.txt")
         self.packedAlignmentPath = os.path.join(self.workingDir, "packed_alignment.txt")
-        self.alignmentMaskPath = os.path.join(self.workingDir, "alignment_mask.txt")
-        self.maskedSequencesPath = os.path.join(self.workingDir, "masked_sequences.txt")
+        self.clusterAlignmentPath = os.path.join(self.workingDir, "cluster_alignment.txt")
+        #self.alignmentMaskPath = os.path.join(self.workingDir, "alignment_mask.txt")
+        #self.maskedSequencesPath = os.path.join(self.workingDir, "masked_sequences.txt")
         if not os.path.exists(self.workingDir):
             os.makedirs(self.workingDir)
         
@@ -35,6 +37,7 @@ class AlignmentGraph:
         self.nodeEdges = None
         
         self.clusters = []
+        self.insertions = set()
         
     def initializeMatrix(self):
         if Configs.constrain:

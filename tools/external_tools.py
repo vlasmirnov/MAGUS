@@ -14,7 +14,14 @@ from tasks.task import Task
 def runCommand(**kwargs):
     command = kwargs["command"]
     Configs.log("Running an external tool, command: {}".format(command))
-    subprocess.run(command, shell=True, cwd = kwargs["workingDir"])
+    runner = subprocess.run(command, shell = True, cwd = kwargs["workingDir"], universal_newlines = True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    try:    
+        runner.check_returncode()
+    except:
+        Configs.error("Command encountered error: {}".format(command))
+        Configs.error("Exit code: {}".format(runner.returncode))
+        Configs.error("Output: {}".format(runner.stdout))
+        raise
     for srcPath, destPath in kwargs.get("fileCopyMap", {}).items():
         shutil.move(srcPath, destPath)
 

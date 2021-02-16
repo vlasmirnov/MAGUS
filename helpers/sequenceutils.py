@@ -180,15 +180,13 @@ def readSequenceLengthFromFasta(filePath):
         for line in f:
             line = line.strip()
             if line.startswith('>'):
-                if not readSequence:
-                    readSequence = True
-                    continue
-                else:
+                if readSequence:
                     return length
+                readSequence = True
             else:
                 length = length + len(line)
-
-
+    if readSequence:
+        return length
 
 def countGaps(alignFile):
     counts = []
