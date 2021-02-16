@@ -6,11 +6,11 @@ Created on Dec 4, 2020
 
 import os
 from helpers import sequenceutils
-from tasks import task
+from tasks import task, manager
 from configuration import Configs
 
 class AlignmentContext:
-    
+        
     def __init__(self, **kwargs):
         self.outputFile = None
         self.workingDir = None
@@ -80,4 +80,11 @@ class AlignmentContext:
                     self.backboneSubalignment[taxon] = subalignment[taxon]
         else:
             self.backboneSubalignment = self.unalignedSequences
+    
+    def __enter__(self):
+        manager.TaskManager.contextStack.append(self)
+        return self
+            
+    def __exit__(self, excType, excVal, excTb):
+        manager.TaskManager.contextStack.pop()
     
