@@ -93,6 +93,6 @@ I would generally disadvise using more than 100 subalignments, unless the data i
 
 ## Related Publications
 
-* Original MAGUS paper: ___Smirnov, V. and Warnow, T., 2020. MAGUS: Multiple Sequence Alignment using Graph Clustering. Bioinformatics.___
+* Original MAGUS paper: ___Smirnov, V. and Warnow, T., 2020. MAGUS: Multiple Sequence Alignment using Graph Clustering. Bioinformatics. https://doi.org/10.1093/bioinformatics/btaa992___
 * GCM-MWT paper:
 * MAGUS on ultra-large datasets: 
