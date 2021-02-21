@@ -63,6 +63,7 @@ def buildInducedSubalignment(**kwargs):
                 letter = subsetAlign[taxon].seq[c]
                 if letter != '-':
                     letter = letter.lower() if c in insertIdxs else letter
+                    assert inducedAlign[taxon][idx] == '-'
                     inducedAlign[taxon][idx] = letter
 
     for s in inducedAlign:
@@ -91,7 +92,7 @@ def writeUnpackedAlignment(context):
         
     Configs.log("Assembling final alignment in {}".format(filePath))
     inducedSubalignTasks = []
-    for subalignPath in context.subalignmentPaths:
+    for bsub, subalignPath in enumerate(context.subalignmentPaths):        
         alignmentColumnsPath = os.path.join(context.graph.workingDir, "alignment_columns_{}".format(os.path.basename(subalignPath)))
         with open(alignmentColumnsPath, 'w') as textFile:
             textFile.write("{}\n".format(" ".join([str(c) for c in inserts[subalignPath]])))
@@ -139,11 +140,9 @@ def buildCompressions(context):
             letterCounts = [int(token) for token in f.readline().strip().split()]
             for i, letters in enumerate(letterCounts):
                 numLetters[idxMap[compressionTask.taskArgs["subalignmentPath"], i]] = letters
-            comps = [int(token) for token in f.readline().strip().split()]
-            for i, dest in enumerate(comps):
-                if dest != -1:
-                    compressions[idxMap[compressionTask.taskArgs["subalignmentPath"], i]] = idxMap[compressionTask.taskArgs["subalignmentPath"], dest]
-        #os.remove(compressionTask.taskArgs["singletonsPath"])
+            for i, line in enumerate(f):
+                comps = set([idxMap[compressionTask.taskArgs["subalignmentPath"], int(token)] for token in line.strip().split()])
+                compressions[idxMap[compressionTask.taskArgs["subalignmentPath"], i]] = comps
         #os.remove(compressionTask.outputFile)     
     return compressions, numLetters
 
@@ -176,7 +175,9 @@ def countHomologies(clusters, numLetters, insertions):
         for b in cluster:
             if b not in insertions:
                 letters = letters + numLetters[b]
-        homs = homs + letters * (letters - 1) / 2
+        if letters > 1:        
+            homs = homs + letters * (letters - 1) / 2   
+            
     return int(homs)
 
 def compressClustersOld(context, clusters, compressions, numLetters, threshold):
@@ -189,9 +190,10 @@ def compressClustersOld(context, clusters, compressions, numLetters, threshold):
     heapSet = set()
     
     backCompressions = {}
-    for a, b in compressions.items():
-        backCompressions[b] = backCompressions.get(b, set())
-        backCompressions[b].add(a)
+    for a, aset in compressions.items():
+        for b in aset:
+            backCompressions[b] = backCompressions.get(b, set())
+            backCompressions[b].add(a)
     
     for idx, cluster in enumerate(clusters):
         for b in cluster:
@@ -201,10 +203,10 @@ def compressClustersOld(context, clusters, compressions, numLetters, threshold):
         
         dest = 0
         for b in cluster:
-            if b in compressions:
-                dest = max(dest, subIdxMap[compressions[b]] + 1)
-            if dest >= idx:
-                break
+            for cb in compressions[b]:
+                dest = max(dest, subIdxMap[cb] + 1)
+                if dest >= idx:
+                    break
         if dest < idx:
             heapq.heappush(heap, (lettersMap[idx], idx))
             heapSet.add(idx)
@@ -217,8 +219,8 @@ def compressClustersOld(context, clusters, compressions, numLetters, threshold):
         move = True
         for b in clusters[idx]:
             nbr = 0
-            if b in compressions:
-                nbr = subIdxMap[compressions[b]] + 1
+            for cb in compressions[b]:
+                nbr = max(nbr, subIdxMap[cb] + 1)
             while len(clusters[nbr]) == 0 and nbr < idx:
                 nbr = nbr + 1
             destMap[b] = nbr
@@ -248,6 +250,16 @@ def compressClustersOld(context, clusters, compressions, numLetters, threshold):
             insertions.remove(c[0])
     
     Configs.log("Compressed from {} clusters to {} clusters..".format(len(clusters), len(newClusters)))
+    
+    #for c in newClusters:
+    #    for b in c:
+    #        if b in compressions:
+    #            assert subIdxMap[compressions[b]] < subIdxMap[b]
+    #print(subIdxMap[13447], subIdxMap[13439], subIdxMap[13446])
+    #assert 1 == 2
+    #13447 13439 13446
+    #[13439, 13453, 13442, 13447
+    
     return newClusters, insertions
 
 def compressClusters(context, clusters, compressions, numLetters, threshold):
@@ -261,9 +273,10 @@ def compressClusters(context, clusters, compressions, numLetters, threshold):
     heapSet = set()
     
     backCompressions = {}
-    for a, b in compressions.items():
-        backCompressions[b] = backCompressions.get(b, set())
-        backCompressions[b].add(a)
+    for a, aset in compressions.items():
+        for b in aset:
+            backCompressions[b] = backCompressions.get(b, set())
+            backCompressions[b].add(a)
     
     for idx, cluster in enumerate(clusters):
         for b in cluster:
@@ -273,10 +286,10 @@ def compressClusters(context, clusters, compressions, numLetters, threshold):
         
         dest = 0
         for b in cluster:
-            if b in compressions:
-                dest = max(dest, subIdxMap[compressions[b]] + 1)
-            if dest >= idx:
-                break
+            for cb in compressions[b]:
+                dest = max(dest, subIdxMap[cb] + 1)
+                if dest >= idx:
+                    break
         if dest < idx:
             heapq.heappush(heap, (lettersMap[idx], idx))
             heapSet.add(idx)
@@ -294,19 +307,23 @@ def compressClusters(context, clusters, compressions, numLetters, threshold):
         
         destMap = {}    
         for b in clusters[idx]:
-            destMap[b] = dest
-            curNode = b
-            curDest = dest
-            while curNode in compressions and subIdxMap[compressions[curNode]] == curDest:
-                if compressions[curNode] not in insertions or curDest == 0:
-                    move = False
+            stack = [(b, dest)]    
+            while len(stack) > 0:
+                curNode, curDest = stack.pop()
+                destMap[curNode] = curDest
+
+                for cb in compressions[curNode]:
+                    if subIdxMap[cb] == curDest:
+                        if cb not in insertions or curDest == 0:
+                            move = False
+                            break
+                        else:
+                            cd = curDest - 1
+                            while len(clusters[cd]) == 0:
+                                cd = cd - 1
+                            stack.append((cb, cd))
+                if not move:
                     break
-                else:
-                    curNode = compressions[curNode]
-                    curDest = curDest - 1
-                    while len(clusters[curDest]) == 0:
-                        curDest = curDest - 1
-                    destMap[curNode] = curDest
         
         if move:
             numCells = numCells - len(context.unalignedSequences)
@@ -350,15 +367,17 @@ def compressSubalignment(**kwargs):
                 notGaps.append(s) 
         
         numLetters.append(len(notGaps))
-        dest = -1
+        dest = set()
         for s in notGaps:
-            dest = max(dest, lastIdx[s])
+            if lastIdx[s] != -1:
+                dest.add(lastIdx[s])
             lastIdx[s] = i
         compressions.append(dest)
             
     with open(tempOutputPath, 'w') as textFile:
         textFile.write("{}\n".format(" ".join([str(c) for c in numLetters])))
-        textFile.write("{}\n".format(" ".join([str(c) for c in compressions])))
+        for dest in compressions:
+            textFile.write("{}\n".format(" ".join([str(c) for c in dest])))
     shutil.move(tempOutputPath, outputPath)
 
 def writeUnconstrainedAlignment(context):
