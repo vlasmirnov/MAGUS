@@ -10,6 +10,11 @@ from collections import deque
 from configuration import Configs
 
 
+'''
+Resolve clusters into a trace by looking for cycles and removing edges to break the cycles.
+We're done when there are no more cycles.
+'''
+
 def mwtGreedySearch(graph):
     Configs.log("Finding graph trace with MWT greedy search..")
     

@@ -15,6 +15,7 @@ from align.merge.optimizer import optimizeTrace
 from align.merge.alignment_writer import writeAlignment
 from configuration import Configs
 
+
 def mergeSubalignments(context):
     Configs.log("Merging {} subaligments..".format(len(context.subalignmentPaths)))
     time1 = time.time()  

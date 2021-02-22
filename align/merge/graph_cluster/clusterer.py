@@ -13,6 +13,10 @@ from align.merge.graph_cluster.mcl import runMclClustering
 from align.merge.graph_cluster.mlr_mcl import runMlrMclClustering
 from align.merge.graph_cluster.rg import rgClustering
 
+'''
+The alignment graph is clustered, the clusters are written out as an array of node arrays.
+MCL is the main way to do this, but rg could be used if there are scalability issues.
+'''
 
 def clusterGraph(graph):
     time1 = time.time()

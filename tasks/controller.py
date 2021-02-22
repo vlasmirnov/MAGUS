@@ -7,6 +7,11 @@ Created on Nov 1, 2020
 from tasks.manager import TaskManager, runTask
 from configuration import Configs
 
+'''
+This is where the main thread goes to submit and await tasks.
+When the main thread is in a blocking wait, it can pick up a new alignment task to run.
+'''
+
 def submitTasks(tasks):
     with TaskManager.managerLock:
         checkTaskManager()

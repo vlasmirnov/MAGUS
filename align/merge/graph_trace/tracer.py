@@ -16,6 +16,13 @@ from align.merge.graph_trace.rg_search import rgSearch
 from align.merge.graph_trace.rg_fast_search import rgFastSearch
 from align.merge.graph_trace.naive import naiveClustering
 
+'''
+Graph clusters must be refined into a "trace", a constrained clustering that corresponds to a valid MSA.
+There are a variety of ways to do this, "minclusters" is usually the most dependable option.
+"mwtgreedy" or "rgfast" might be used if there are scalability issues.
+Some of these options don't require an existing clustering, and can work on the raw graph.
+'''
+
 def findTrace(graph):
     time1 = time.time() 
     

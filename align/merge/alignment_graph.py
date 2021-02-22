@@ -11,6 +11,13 @@ from configuration import Configs
 import threading
 
 
+'''
+Data structure for dealing with alignment graphs.
+Subalignment columns are mapped to graph nodes, represented by integers.
+Integer nodes can be converted back to corresponding subalignment columns.
+Reads/writes graph and cluster files.
+'''
+
 class AlignmentGraph:
     
     def __init__(self, context):
@@ -19,11 +26,6 @@ class AlignmentGraph:
         self.graphPath = os.path.join(self.workingDir, "graph.txt")
         self.clusterPath = os.path.join(self.workingDir, "clusters.txt")
         self.tracePath = os.path.join(self.workingDir, "trace.txt")
-        #self.compressedTracePath = os.path.join(self.workingDir, "trace_compressed.txt")
-        self.packedAlignmentPath = os.path.join(self.workingDir, "packed_alignment.txt")
-        self.clusterAlignmentPath = os.path.join(self.workingDir, "cluster_alignment.txt")
-        #self.alignmentMaskPath = os.path.join(self.workingDir, "alignment_mask.txt")
-        #self.maskedSequencesPath = os.path.join(self.workingDir, "masked_sequences.txt")
         if not os.path.exists(self.workingDir):
             os.makedirs(self.workingDir)
         

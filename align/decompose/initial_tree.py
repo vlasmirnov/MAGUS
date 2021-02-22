@@ -15,6 +15,10 @@ from tasks import task
 from tools import external_tools
 from configuration import Configs
 
+'''
+Different options for estimating a guide tree.
+The main ones are FastTree (for accuracy) and Clustal Omega's mbed (for speed).
+'''
 
 def buildInitialTree(context, workingDir, treeType):
     if treeType is not None and os.path.exists(treeType):

@@ -11,6 +11,13 @@ import traceback
 from configuration import Configs
 from tasks import controller
 
+'''
+Tasks are self-contained, parallelizable units of work. 
+For example, running MAFFT, compressing a subalignment, etc..
+Primarily used to thread-parallelize MAFFT runs and node-parallelize subalignment operations.
+Saved as JSON in task files, which are then read back by computing nodes with available threads.
+This also serves the purpose of allowing aborted MAGUS runs to pick up where they left off.
+'''
 
 class Task:
     

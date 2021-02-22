@@ -11,6 +11,10 @@ from configuration import Configs
 from helpers import sequenceutils
 from tasks import task
 
+'''
+This is where a trace is converted into a final alignment.
+If necessary, the trace is compressed first.
+'''
 
 def writeAlignment(context):
     context.graph.addSingletonClusters()
@@ -249,17 +253,7 @@ def compressClustersOld(context, clusters, compressions, numLetters, threshold):
         if len(c) == 1 and c[0] in insertions:
             insertions.remove(c[0])
     
-    Configs.log("Compressed from {} clusters to {} clusters..".format(len(clusters), len(newClusters)))
-    
-    #for c in newClusters:
-    #    for b in c:
-    #        if b in compressions:
-    #            assert subIdxMap[compressions[b]] < subIdxMap[b]
-    #print(subIdxMap[13447], subIdxMap[13439], subIdxMap[13446])
-    #assert 1 == 2
-    #13447 13439 13446
-    #[13439, 13453, 13442, 13447
-    
+    Configs.log("Compressed from {} clusters to {} clusters..".format(len(clusters), len(newClusters)))    
     return newClusters, insertions
 
 def compressClusters(context, clusters, compressions, numLetters, threshold):

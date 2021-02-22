@@ -9,6 +9,13 @@ import time
 
 from configuration import Configs
 
+'''
+Optimizer may be used to post-process a trace to improve the MWT score by shuffling nodes between clusters.
+Disabled by default - tends to be very time-consuming with negligible improvements to accuracy.
+However, may be helpful when using inaccurate clustering and/or tracing algorithms.
+The quality of the resulting trace is usually on par with using MCL/minclusters.
+'''
+
 def optimizeTrace(graph):
     time1 = time.time() 
     

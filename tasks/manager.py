@@ -12,6 +12,12 @@ import concurrent.futures
 from configuration import Configs
 from tasks import files
 
+'''
+Launching and awaiting tasks.
+To avoid deadlocks and stack overflows, only the main thread can submit tasks.
+Thus, only the main thread runs alignment tasks, worker threads are used for other task types (like MAFFT).
+'''
+
 class TaskManager():
     
     runningTasksFile = None
