@@ -10,6 +10,11 @@ import random
 
 from configuration import Configs
     
+'''
+Fiduccia-Mattheyses implementation for clustering and/or tracing. 
+Currently not recommended, slower and less accurate than minclusters or mwtgreedy.
+'''
+
 def fmAlgorithm(graph):
     Configs.log("Finding graph trace with FM Algorithm..")
     

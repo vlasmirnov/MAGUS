@@ -8,6 +8,11 @@ import heapq
 
 from configuration import Configs
 
+'''
+Resolve clusters into a trace by breaking conflicting clusters apart.
+We use A* to search for the path of cluster breaks with the smallest number of clusters broken.
+'''
+
 #todo refactoring
 def minClustersSearch(graph):
     Configs.log("Finding graph trace with minimum clusters heuristic search..")

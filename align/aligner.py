@@ -15,6 +15,11 @@ from configuration import Configs
 from helpers import sequenceutils
 from tasks import task
 
+'''
+Alignments are treated as "tasks", units of work that are written out to task files and 
+processed as threads and/or compute nodes become available. 
+MAGUS tasks will recursively generate MAGUS tasks over large subsets and MAFFT tasks over smaller subsets.
+'''
 
 def mainAlignmentTask():    
     args = {"workingDir" : Configs.workingDir, "outputFile" : Configs.outputPath,
@@ -28,6 +33,11 @@ def createAlignmentTask(args):
     return task.Task(taskType = "runAlignmentTask", outputFile = args["outputFile"], taskArgs = args)
 
 def runAlignmentTask(**kwargs):
+    '''
+    The standard MAGUS task: 
+    decompose the data into subsets, align each subset, and merge the subalignments.
+    '''
+    
     with AlignmentContext(**kwargs) as context:
         if context.sequencesPath is not None:
             Configs.log("Aligning sequences {}".format(context.sequencesPath))

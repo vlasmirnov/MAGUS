@@ -14,6 +14,11 @@ from configuration import buildConfigs, Configs
 from tasks import manager
 
 def main():   
+    '''
+    Resolve the args/configs, spin up the task manager (which deals with worker threads and handles parallelism), 
+    and get started on the main alignment task. 
+    '''
+    
     startTime = time.time()
     args = parseArgs()
     buildConfigs(args)    

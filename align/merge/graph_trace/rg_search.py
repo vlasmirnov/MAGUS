@@ -9,6 +9,11 @@ from collections import deque
 
 from configuration import Configs
 
+'''
+Region-growing strategy, similar to Kruskal's algorithm. Start with an empty graph, greedily
+adding the heaviest edges first. Can be used for clustering or tracing.
+'''
+
 def rgSearch(graph):
     Configs.log("Finding graph trace with region-growing search..")
     

@@ -12,6 +12,11 @@ from align.decompose import initial_tree, kmh
 from helpers import treeutils, sequenceutils
 from configuration import Configs
 
+'''
+Handles the different ways to decompose the dataset into subsets.
+The main way is to estimate a guide tree, then use PASTA's centroid edge decomposition
+on the guide tree. Can also decompose randomly (for high speed on huge datasets).
+'''
 
 def decomposeSequences(context):
     time1 = time.time()

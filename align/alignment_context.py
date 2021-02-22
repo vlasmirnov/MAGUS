@@ -9,6 +9,13 @@ from helpers import sequenceutils
 from tasks import task, manager
 from configuration import Configs
 
+'''
+The AlignmentContext data structure maintains all information pertaining to a single MAGUS alignment.
+The main thread keeps one context active at a time (to manage resources). Subalignments will spawn their
+own contexts, which will become active when the parent context is in a blocking wait. The previously active
+context resumes when the current alignment is completed.
+'''
+
 class AlignmentContext:
         
     def __init__(self, **kwargs):

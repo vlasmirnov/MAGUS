@@ -15,6 +15,10 @@ from tasks import task
 from tools import external_tools
 from configuration import Configs
 
+'''
+Not really used for anything, may be removed in the future.
+'''
+
 def buildSubsetsKMH(context, subsetsDir):
     tempDir = os.path.join(subsetsDir, "initial_tree")
     

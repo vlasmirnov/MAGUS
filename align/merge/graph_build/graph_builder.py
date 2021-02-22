@@ -14,6 +14,15 @@ from tasks import task
 from configuration import Configs
 from tools import external_tools
 
+'''
+Building a MAGUS alignment graph from backbone alignments. 
+The graph is a sparse matrix, stored as a weighted adjacency list.
+Backbone alignment tasks are run in parallel, and can begin before the subalignments are finished.
+When subalignments finish, we can initialize the alignment graph. 
+Backbones are added to this graph as they complete.
+Graph is written to file in MCL-compliant format.
+'''
+
 def buildGraph(context):
     time1 = time.time() 
     
