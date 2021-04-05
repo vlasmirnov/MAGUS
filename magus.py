@@ -124,6 +124,12 @@ def parseArgs():
     parser.add_argument("--recurse", type=str,
                         help="Allow MAGUS to recurse on large subsets (true or false)", required=False, default="true")
     
+    parser.add_argument("--recurseguidetree", type=str,
+                        help="If recursing, passes this argument as the guide tree option to the lower levels. (Default fasttree)", required=False, default="fasttree")
+    
+    parser.add_argument("--recursethreshold", type=int,
+                        help="MAGUS will recursively align subsets above this threshold size", required=False, default=200)
+    
     parser.add_argument("--alignsizelimit", type=float,
                         help="Size threshold for alignment compression (in GB)", required=False, default=100)
        
