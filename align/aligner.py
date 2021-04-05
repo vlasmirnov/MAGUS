@@ -61,7 +61,7 @@ def alignSubsets(context):
     if not os.path.exists(subalignDir):
         os.makedirs(subalignDir)
         
-    mafftThreshold = max(Configs.mafftSize, Configs.decompositionMaxSubsetSize)
+    mafftThreshold = max(Configs.mafftSize, Configs.decompositionMaxSubsetSize, Configs.recurseThreshold)
     
     for file in context.subsetPaths:
         subset = sequenceutils.readFromFasta(file)
@@ -79,7 +79,8 @@ def alignSubsets(context):
         else:
             Configs.log("Subset has {}/{} sequences, recursively subaligning with MAGUS..".format(len(subset), mafftThreshold))
             subalignmentDir = os.path.join(subalignDir, os.path.splitext(os.path.basename(subalignmentPath))[0])
-            subalignmentTask = createAlignmentTask({"outputFile" : subalignmentPath, "workingDir" : subalignmentDir, "sequencesPath" : file})   
+            subalignmentTask = createAlignmentTask({"outputFile" : subalignmentPath, "workingDir" : subalignmentDir, 
+                                                    "sequencesPath" : file, "guideTree" : Configs.recurseGuideTree})   
             context.subalignmentTasks.append(subalignmentTask)
                 
     task.submitTasks(context.subalignmentTasks)
