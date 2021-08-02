@@ -13,6 +13,7 @@ from helpers import sequenceutils, hmmutils
 from tasks import task
 from configuration import Configs
 from tools import external_tools
+from align.merge.graph_build import backbones
 
 '''
 Building a MAGUS alignment graph from backbone alignments. 
@@ -53,20 +54,20 @@ def requestBackboneTasks(context):
         context.backbonePaths = context.backbonePaths
         for path in context.backbonePaths:
             context.backboneTaxa.update(sequenceutils.readFromFasta(path))
-    
-    elif Configs.graphBuildMethod == "mafft":
-        Configs.log("Using {} MAFFT backbones..".format(Configs.mafftRuns)) 
-        requestMafftBackbones(context)
         
-    elif Configs.graphBuildMethod == "subsethmm":
+    elif Configs.graphBuildStrategy == "subsethmm":
         Configs.log("Using {} HMM-extended subalignments as backbone files..".format(len(context.subalignmentPaths)))
         context.backbonePaths = context.subalignmentPaths
         context.backboneExtend.update(context.backbonePaths)
         
-    elif Configs.graphBuildMethod == "initial":
+    elif Configs.graphBuildStrategy == "initial":
         Configs.log("Using the initial decomposition alignment as the single backbone..")
         initialAlignPath = os.path.join(context.workingDir, "decomposition", "initial_tree", "initial_insert_align.txt")
         context.backbonePaths = [initialAlignPath]
+    
+    else:
+        Configs.log("Using {} MAFFT backbones..".format(Configs.mafftRuns)) 
+        backbones.requestMafftBackbones(context)
     
     if not Configs.constrain and Configs.graphBuildMethod != "subsethmm":
         context.backbonePaths.extend(context.subalignmentPaths)

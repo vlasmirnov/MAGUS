@@ -29,6 +29,8 @@ class Configs:
     graphBuildMethod = "mafft"
     graphBuildHmmExtend = False
     graphBuildRestrict = False
+    graphBuildStrategy = "random"
+    
     graphClusterMethod = "mcl" 
     graphTraceMethod = "minclusters"
     graphTraceOptimize = False
@@ -139,6 +141,7 @@ def buildConfigs(args):
     Configs.graphBuildMethod = args.graphbuildmethod
     Configs.graphBuildHmmExtend = args.graphbuildhmmextend.lower() == "true"
     Configs.graphBuildRestrict = args.graphbuildrestrict.lower() == "true"
+    Configs.graphBuildStrategy = args.graphbuildstrategy
     Configs.graphClusterMethod = args.graphclustermethod
     Configs.graphTraceMethod = args.graphtracemethod
     Configs.graphTraceOptimize = args.graphtraceoptimize.lower() == "true"

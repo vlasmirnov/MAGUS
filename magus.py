@@ -83,7 +83,7 @@ def parseArgs():
                         required=False, default=None)
     
     parser.add_argument("--graphbuildmethod", type=str,
-                        help="Method for building the alignment graph (mafft, mafftmerge, or initial)",
+                        help="Method for building the alignment graph (only mafft currently supported)",
                         required=False, default="mafft")
     
     parser.add_argument("--graphbuildrestrict", type=str,
@@ -93,6 +93,10 @@ def parseArgs():
     parser.add_argument("--graphbuildhmmextend", type=str,
                         help="Extend the alignment graph MAFFT backbones with hmmer (true or false)",
                         required=False, default="False")
+    
+    parser.add_argument("--graphbuildstrategy", type=str,
+                        help="Strategy for choosing backbone sequences (random, longest, longestrandom, coverage)",
+                        required=False, default="random")
     
     parser.add_argument("--graphclustermethod", type=str,
                         help="Method for initial clustering of the alignment graph (mcl or none)",
