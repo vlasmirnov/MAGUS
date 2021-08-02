@@ -171,7 +171,8 @@ def buildBackbonesLongestRandom6(context, backbones, numTaxa):
                 fullLength.append(t)
             else:
                 notFullLength.append(t) 
-                
+        
+        Configs.log("Found {}/{} full-length sequences..".format(len(fullLength), len(subset)))        
         for file, backbone in backbones.items():
             random.shuffle(fullLength)
             random.shuffle(notFullLength)  
@@ -192,7 +193,8 @@ def buildBackbonesLongestRandom7(context, backbones, numTaxa):
                 fullLength.append(t)
             else:
                 notFullLength.append(t) 
-                
+        
+        Configs.log("Found {}/{} full-length sequences..".format(len(fullLength), len(subset)))        
         for file, backbone in backbones.items():
             random.shuffle(fullLength)
             random.shuffle(notFullLength)  
@@ -313,7 +315,7 @@ def buildBackbonesCoverage2(context, backbones, numTaxa):
                         usedSites.add(pos)
                         usedTaxons.add(taxon)
                         backbone[taxon] = context.unalignedSequences[taxon]                
-            Configs.debug("Selected {} coverage sequences..".format(len(usedTaxons)))
+            Configs.log("Selected {} coverage sequences..".format(len(usedTaxons)))
             
             remainder = [t for t in taxa if t not in usedTaxons]
             random.shuffle(remainder)
