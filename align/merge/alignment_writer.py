@@ -30,6 +30,11 @@ def compressAlignment(context):
     Configs.log("Uncompressed alignment will have {} cells..".format(numCells))
     if numCells > Configs.alignmentSizeLimit*1e9:
         Configs.log("Alignment will be more than {} Gigs, compressing..".format(Configs.alignmentSizeLimit))
+        if Configs.allowLossyCompression:
+            Configs.log("Allowing lossy compression..")
+        else:
+            Configs.log("Restricting to lossless compression..")       
+        
         compressions, numLetters = buildCompressions(context)
         startCols, startHoms = len(graph.clusters), countHomologies(graph.clusters, numLetters, set())
                 
@@ -184,78 +189,6 @@ def countHomologies(clusters, numLetters, insertions):
             
     return int(homs)
 
-def compressClustersOld(context, clusters, compressions, numLetters, threshold):
-    insertions = set()
-    numCells = len(context.unalignedSequences) * len(clusters)
-    heap = []
-    
-    subIdxMap = {}
-    lettersMap = {i : 0 for i in range(len(clusters))}
-    heapSet = set()
-    
-    backCompressions = {}
-    for a, aset in compressions.items():
-        for b in aset:
-            backCompressions[b] = backCompressions.get(b, set())
-            backCompressions[b].add(a)
-    
-    for idx, cluster in enumerate(clusters):
-        for b in cluster:
-            if b not in insertions:
-                lettersMap[idx] = lettersMap[idx] + numLetters[b]
-            subIdxMap[b] = idx
-        
-        dest = 0
-        for b in cluster:
-            for cb in compressions[b]:
-                dest = max(dest, subIdxMap[cb] + 1)
-                if dest >= idx:
-                    break
-        if dest < idx:
-            heapq.heappush(heap, (lettersMap[idx], idx))
-            heapSet.add(idx)
-    
-    while len(heap) > 0 and numCells > threshold:
-        ltrs, idx = heapq.heappop(heap)
-        heapSet.remove(idx)
-        
-        destMap = {}
-        move = True
-        for b in clusters[idx]:
-            nbr = 0
-            for cb in compressions[b]:
-                nbr = max(nbr, subIdxMap[cb] + 1)
-            while len(clusters[nbr]) == 0 and nbr < idx:
-                nbr = nbr + 1
-            destMap[b] = nbr
-            if nbr >= idx:
-                move = False
-                break
-        
-        if move:
-            numCells = numCells - len(context.unalignedSequences)
-            for b in clusters[idx]:
-                insertions.add(b)
-                dest = destMap[b]
-                clusters[dest].append(b)
-                subIdxMap[b] = dest
-                
-                if b in backCompressions:
-                    for nxt in backCompressions[b]:
-                        nbr = subIdxMap[nxt]
-                        if len(clusters[nbr]) > 0 and nbr not in heapSet:
-                            heapq.heappush(heap, (lettersMap[nbr], nbr))
-                            heapSet.add(nbr)
-            clusters[idx] = []
-    
-    newClusters = [c for c in clusters if len(c) > 0]
-    for c in newClusters:
-        if len(c) == 1 and c[0] in insertions:
-            insertions.remove(c[0])
-    
-    Configs.log("Compressed from {} clusters to {} clusters..".format(len(clusters), len(newClusters)))    
-    return newClusters, insertions
-
 def compressClusters(context, clusters, compressions, numLetters, threshold):
     clusters = [set(c) for c in clusters]
     insertions = set()
@@ -284,20 +217,28 @@ def compressClusters(context, clusters, compressions, numLetters, threshold):
                 dest = max(dest, subIdxMap[cb] + 1)
                 if dest >= idx:
                     break
-        if dest < idx:
+        if dest < idx: # and (Configs.allowLossyCompression or lettersMap[idx] == 1):
             heapq.heappush(heap, (lettersMap[idx], idx))
             heapSet.add(idx)
     
-    while len(heap) > 0 and numCells > threshold:
+    lossy = False
+    while len(heap) > 0:
         ltrs, idx = heapq.heappop(heap)
         heapSet.remove(idx)
+        
+        if ltrs > 1 and not lossy:
+            lossy = True
+            Configs.log("Reached the limit of lossless compression at {} cells..".format(numCells))
+            if not Configs.allowLossyCompression:
+                break
+            Configs.log("Proceeding with lossy compression..")
+        if numCells <= threshold and lossy:
+            break
         
         move = True
         dest = idx - 1
         while len(clusters[dest]) == 0:
             dest = dest - 1
-        #if dest < 0:
-        #    continue
         
         destMap = {}    
         for b in clusters[idx]:
@@ -326,7 +267,7 @@ def compressClusters(context, clusters, compressions, numLetters, threshold):
                 if b in backCompressions:
                     for nxt in backCompressions[b]:
                         nbr = subIdxMap[nxt]
-                        if len(clusters[nbr]) > 0 and nbr not in heapSet:
+                        if len(clusters[nbr]) > 0 and nbr not in heapSet: # and (Configs.allowLossyCompression or lettersMap[nbr] == 1):
                             heapq.heappush(heap, (lettersMap[nbr], nbr))
                             heapSet.add(nbr)
                 

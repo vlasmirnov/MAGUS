@@ -62,6 +62,7 @@ class Configs:
     numCores = 1
     searchHeapLimit = 5000
     alignmentSizeLimit = 100
+    allowLossyCompression = True
     
     @staticmethod
     def log(msg, path = None):
@@ -161,3 +162,4 @@ def buildConfigs(args):
     Configs.debugPath = os.path.join(Configs.workingDir, "log_debug.txt")
     
     Configs.alignmentSizeLimit = args.alignsizelimit
+    Configs.allowLossyCompression = args.allowlossycompression.lower() == "true"
