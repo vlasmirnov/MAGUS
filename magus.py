@@ -9,10 +9,6 @@ import argparse
 import sys
 import traceback
 
-import os
-# a temporary hack for getting the modules to load properly from CLI
-sys.path.append(os.path.dirname(__file__))
-
 from align.aligner import mainAlignmentTask
 from configuration import buildConfigs, Configs
 from tasks import manager
