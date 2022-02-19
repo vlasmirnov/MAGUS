@@ -12,10 +12,14 @@ from sys import platform
 import stat
 from helpers import sequenceutils
 from os.path import basename
+from glob import glob
 
 def retrieve_packaged_binary(p):
     if platform == "linux" or platform == "linux2":
-        os.chmod(p, os.stat(p).st_mode | stat.S_IEXEC)
+        for executable in glob(os.path.dirname(p) + "/**/*",recursive=True):
+            if not os.path.isfile(executable):
+                continue
+            os.chmod(executable, os.stat(p).st_mode | stat.S_IEXEC)
         return p
     else:
         return None

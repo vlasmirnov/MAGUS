@@ -15,7 +15,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="magus-msa",
-    version="0.1.0a7",
+    version="0.1.0a8",
     author="vlasmirnov",
     description="Multiple Sequence Alignment using Graph Clustering",
     long_description=long_description,
