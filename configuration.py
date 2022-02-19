@@ -4,10 +4,26 @@ Created on Apr 14, 2020
 @author: Vlad
 '''
 
+from gettext import find
 import os
 import time
-
+from shutil import which
+from sys import platform
+import stat
 from helpers import sequenceutils
+from os.path import basename
+
+def retrieve_packaged_binary(p):
+    if platform == "linux" or platform == "linux2":
+        os.chmod(p, os.stat(p).st_mode | stat.S_IEXEC)
+        return p
+    else:
+        return None
+
+def find_binary(rel_default_path):
+    default_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), rel_default_path)
+    return which(basename(rel_default_path)) or retrieve_packaged_binary(default_path)
+
 
 class Configs:
     
@@ -43,15 +59,15 @@ class Configs:
     recurseGuideTree = "fasttree"
     recurseThreshold = 200
     
-    clustalPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/clustal/clustalo")
-    mafftPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mafft/mafft")
-    mclPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mcl/bin/mcl")
-    mlrmclPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/mlrmcl/mlrmcl")
-    hmmalignPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/hmmer/hmmalign")
-    hmmbuildPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/hmmer/hmmbuild")
-    hmmsearchPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/hmmer/hmmsearch")
-    fasttreePath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/fasttree/FastTreeMP")
-    raxmlPath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools/raxmlng/raxml-ng")
+    clustalPath = find_binary("tools/clustal/clustalo")
+    mafftPath = find_binary("tools/mafft/mafft")
+    mclPath = find_binary("tools/mcl/bin/mcl")
+    mlrmclPath = find_binary("tools/mlrmcl/mlrmcl")
+    hmmalignPath = find_binary("tools/hmmer/hmmalign")
+    hmmbuildPath = find_binary("tools/hmmer/hmmbuild")
+    hmmsearchPath = find_binary("tools/hmmer/hmmsearch")
+    fasttreePath = find_binary("tools/fasttree/FastTreeMP")
+    raxmlPath = find_binary("tools/raxmlng/raxml-ng")
     
     logPath = None
     errorPath = None
