@@ -15,7 +15,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="magus-msa",
-    version="0.1.0b0",
+    version="0.1.0b1",
     author="vlasmirnov",
     description="Multiple Sequence Alignment using Graph Clustering",
     long_description=long_description,
@@ -29,7 +29,7 @@ setuptools.setup(
             'magus=magus:main',
         ],
     },
-    py_modules=['magus', 'configuration'],
+    py_modules=['magus', 'magus_configuration'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

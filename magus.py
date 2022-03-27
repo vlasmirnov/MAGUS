@@ -9,9 +9,9 @@ import argparse
 import sys
 import traceback
 
-from align.aligner import mainAlignmentTask
-from configuration import buildConfigs, Configs
-from tasks import manager
+from magus_align.aligner import mainAlignmentTask
+from magus_configuration import buildConfigs, Configs
+from magus_tasks import manager
 
 def main():   
     '''
