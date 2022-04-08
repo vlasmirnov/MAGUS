@@ -15,7 +15,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="magus-msa",
-    version="0.1.0b1",
+    version="0.1.0b2",
     author="vlasmirnov",
     description="Multiple Sequence Alignment using Graph Clustering",
     long_description=long_description,
@@ -35,7 +35,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
     ],
     package_dir={"": "."},
-    package_data={'': package_files('tools')},
+    package_data={'': package_files('magus_tools')},
     packages=find_packages(),
     install_requires=["dendropy>=4.5.2"],
     python_requires=">=3.6",
