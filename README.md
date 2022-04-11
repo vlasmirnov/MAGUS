@@ -18,6 +18,24 @@ The basic procedure is outlined below. Steps 4-7 are GCM.
 
 - - - -
 
+## Installing MAGUS
+Deepest thanks to Baqiao Liu for setting up the MAGUS PyPI package (https://pypi.org/project/magus-msa/)  
+This is currently the easiest way to get started with MAGUS.   
+The package can be installed with   
+  
+*pip3 install magus-msa*  
+  
+and executed with   
+  
+*magus \<arguments\>*  
+  
+Alternatively, you can download and extract the code from this repository to a directory of your choice.  
+Then, you can run MAGUS with 
+  
+*python3 <directory_path>/magus.py <arguments>*
+
+- - - -
+
 ## Dependencies
 MAGUS requires
 * Python 3
