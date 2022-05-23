@@ -181,3 +181,5 @@ scratch/
 
 .vscode/
 .idea
+.project
+.pydevproject

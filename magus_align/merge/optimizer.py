@@ -8,6 +8,7 @@ import heapq
 import time
 
 from magus_configuration import Configs
+from magus_helpers.mwt_score import computeClusteringScore
 
 '''
 Optimizer may be used to post-process a trace to improve the MWT score by shuffling nodes between clusters.
@@ -23,7 +24,7 @@ def optimizeTrace(graph):
         Configs.log("Optimization pass..")
         graph.addSingletonClusters()
         graph.clusters = optimizeClusters(graph, graph.clusters)
-        Configs.log("Optimized the trace to {} clusters with a total cost of {}".format(len(graph.clusters), graph.computeClusteringCost(graph.clusters)))
+        Configs.log("Optimized the trace to {} clusters with a total cost of {}".format(len(graph.clusters), computeClusteringScore(graph, graph.clusters)))
     else:
         Configs.log("Skipping optimization pass..")
     time2 = time.time()
@@ -31,7 +32,7 @@ def optimizeTrace(graph):
     
 
 def optimizeClusters(graph, clusters):
-    bestClusters, bestCost = clusters, graph.computeClusteringCost(clusters)
+    bestClusters, bestCost = clusters, computeClusteringScore(graph, clusters)
     Configs.log("Starting optimization from initial cost of {}..".format(bestCost)) 
     context = SearchContext(clusters)
     context.initialize(graph)
@@ -44,17 +45,14 @@ def optimizeClusters(graph, clusters):
             bestClusters = newClusters
             bestCost = bestCost - gain
             Configs.log("New clustering with a cost of {} over {} clusters..".format(bestCost, len(bestClusters)))
-            #Configs.log("Verifying cost of {}..".format(graph.computeClusteringCost(bestClusters)))
         else:
             break
         passNum = passNum + 1
-    #Configs.log("Final optimized cost of {} over {} clusters..".format(graph.computeClusteringCost(bestClusters), len(bestClusters)))
     Configs.log("Final optimized cost of {} over {} clusters..".format(bestCost, len(bestClusters)))
     return bestClusters
 
 def optimizationPass(graph, clusters, context):
     context.initializeHeap(graph)
-    #cost = graph.computeClusteringCost(clusters)
     #Configs.log("Initial cost: {}..".format(cost))
     
     bestGain, currentGain, bestClusters = 0, 0, clusters

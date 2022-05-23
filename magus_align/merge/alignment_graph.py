@@ -134,29 +134,6 @@ class AlignmentGraph:
         for i, value in enumerate(stringCut):
             stringCut[i] = value - self.subsetMatrixIdx[i]
         return stringCut
-
-    def computeClusteringCost(self, clusters):
-        cutCost = 0
-        nodeClusters = {}
-        
-        for n, cluster in enumerate(clusters):
-            for a in cluster:
-                nodeClusters[a] = n
-                
-        clusterCounter = len(clusters)
-        for a in range(self.matrixSize):
-            if a not in nodeClusters:
-                nodeClusters[a] = clusterCounter
-                clusterCounter = clusterCounter + 1
-                 
-        for a in range(self.matrixSize):
-            asub, apos = self.matSubPosMap[a]
-            for b, value in self.matrix[a].items():
-                bsub, bpos = self.matSubPosMap[b] 
-                if asub != bsub and nodeClusters[a] != nodeClusters[b]:
-                    cutCost = cutCost + value
-    
-        return int(cutCost/2) 
     
     def addSingletonClusters(self):
         newClusters = []

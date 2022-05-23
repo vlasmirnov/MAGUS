@@ -15,6 +15,7 @@ from magus_align.merge.graph_trace.mwt_search import mwtGreedySearch, mwtSearch
 from magus_align.merge.graph_trace.rg_search import rgSearch
 from magus_align.merge.graph_trace.rg_fast_search import rgFastSearch
 from magus_align.merge.graph_trace.naive import naiveClustering
+from magus_helpers.mwt_score import computeClusteringScore
 
 '''
 Graph clusters must be refined into a "trace", a constrained clustering that corresponds to a valid MSA.
@@ -54,7 +55,7 @@ def findTrace(graph):
     
     time2 = time.time()
     Configs.log("Found alignment graph trace in {} sec..".format(time2-time1))
-    Configs.log("Found a trace with {} clusters and a total cost of {}".format(len(graph.clusters), graph.computeClusteringCost(graph.clusters)))
+    Configs.log("Found a trace with {} clusters and a total cost of {}".format(len(graph.clusters), computeClusteringScore(graph, graph.clusters)))
     
     
     
