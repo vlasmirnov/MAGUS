@@ -94,13 +94,13 @@ def compareDendropyTrees(tr1, tr2):
 def decomposeGuideTree(subsetsDir, sequencesPath, guideTreePath, maxSubsetSize, maxNumSubsets):
     sequences = sequenceutils.readFromFasta(sequencesPath, removeDashes = False)
     guideTree = dendropy.Tree.get(path=guideTreePath, schema="newick", preserve_underscores=True)
-    guideTree.collapse_basal_bifurcation()
     
     # resolve polytomies before decomposition
     # if not - large degree nodes can be issues when they contain
     # more than [maxsubsetsize] children, as the algorithm will only
     # be able to peel off one leaf at a time
     guideTree.resolve_polytomies(update_bipartitions=True)
+    guideTree.collapse_basal_bifurcation()
 
     for edge in guideTree.postorder_edge_iter():
         if len(edge.head_node.child_edges()) > 0:
