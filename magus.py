@@ -9,6 +9,11 @@ import argparse
 import sys
 import traceback
 
+
+# load version number, follows https://stackoverflow.com/a/16084844
+# from .version import version doesn't work because from here there won't be a parent dir
+exec(open('./version.py').read())
+
 from magus_align.aligner import mainAlignmentTask
 from magus_configuration import buildConfigs, Configs
 from magus_tasks import manager
@@ -132,6 +137,8 @@ def parseArgs():
     
     parser.add_argument("--alignsizelimit", type=float,
                         help="Size threshold for alignment compression (in GB)", required=False, default=100)
+
+    parser.add_argument('--version', action='version', version=__version__)
        
     return parser.parse_args()
 

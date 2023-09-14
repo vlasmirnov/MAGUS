@@ -2,6 +2,9 @@ import setuptools
 from setuptools import find_packages
 import os
 
+# load version number, follows https://stackoverflow.com/a/16084844
+exec(open('./version.py').read())
+
 # https://stackoverflow.com/a/36693250/13241395
 def package_files(directory):
     paths = []
@@ -15,7 +18,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="magus-msa",
-    version="0.1.0",
+    version=__version__,
     author="vlasmirnov",
     description="Multiple Sequence Alignment using Graph Clustering",
     long_description=long_description,
