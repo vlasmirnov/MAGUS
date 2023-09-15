@@ -3,7 +3,7 @@ from setuptools import find_packages
 import os
 
 # load version number, follows https://stackoverflow.com/a/16084844
-from version import __version__
+exec(open('./version.py').read())
 
 # https://stackoverflow.com/a/36693250/13241395
 def package_files(directory):
