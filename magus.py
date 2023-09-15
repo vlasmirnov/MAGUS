@@ -8,11 +8,10 @@ import time
 import argparse
 import sys
 import traceback
-
-
 # load version number, follows https://stackoverflow.com/a/16084844
-# from .version import version doesn't work because from here there won't be a parent dir
-exec(open('./version.py').read())
+from version import __version__
+
+
 
 from magus_align.aligner import mainAlignmentTask
 from magus_configuration import buildConfigs, Configs
