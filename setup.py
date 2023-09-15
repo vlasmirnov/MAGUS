@@ -3,7 +3,7 @@ from setuptools import find_packages
 import os
 
 # load version number, follows https://stackoverflow.com/a/16084844
-exec(open('./version.py').read())
+from version import __version__
 
 # https://stackoverflow.com/a/36693250/13241395
 def package_files(directory):
@@ -32,7 +32,7 @@ setuptools.setup(
             'magus=magus:main',
         ],
     },
-    py_modules=['magus', 'magus_configuration'],
+    py_modules=['magus', 'magus_configuration', 'version'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
