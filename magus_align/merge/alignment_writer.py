@@ -79,7 +79,7 @@ def writeUnpackedAlignment(context):
     graph = context.graph
     filePath = context.outputFile
     
-    tempFile = os.path.join(os.path.dirname(filePath), "temp_{}".format(os.path.basename(filePath)))
+    tempFile = os.path.join(Configs.workingDir, "temp_{}".format(os.path.basename(filePath)))
     if os.path.exists(tempFile):
         os.remove(tempFile)
         
