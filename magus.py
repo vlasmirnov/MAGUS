@@ -137,6 +137,9 @@ def parseArgs():
     parser.add_argument("--alignsizelimit", type=float,
                         help="Size threshold for alignment compression (in GB)", required=False, default=100)
 
+    parser.add_argument("--overwrite", default=False,
+                        dest='overwrite', action='store_true', help="Force overwriting of output files, even if they already exist. Default off.")
+
     parser.add_argument('--version', action='version', version=__version__)
        
     return parser.parse_args()

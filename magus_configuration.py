@@ -72,6 +72,8 @@ class Configs:
     hmmsearchPath = find_binary("magus_tools/hmmer/hmmsearch")
     fasttreePath = find_binary("magus_tools/fasttree/FastTreeMP")
     raxmlPath = find_binary("magus_tools/raxmlng/raxml-ng")
+
+    overwrite = False
     
     logPath = None
     errorPath = None
@@ -172,6 +174,8 @@ def buildConfigs(args):
     Configs.recurse = args.recurse.lower() == "true"
     Configs.recurseGuideTree = args.recurseguidetree
     Configs.recurseThreshold = args.recursethreshold
+
+    Configs.overwrite = args.overwrite
     
     Configs.logPath = os.path.join(Configs.workingDir, "log.txt")    
     Configs.errorPath = os.path.join(Configs.workingDir, "log_errors.txt")
