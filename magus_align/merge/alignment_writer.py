@@ -79,9 +79,13 @@ def writeUnpackedAlignment(context):
     graph = context.graph
     filePath = context.outputFile
     
-    tempFile = os.path.join(Configs.workingDir, "temp_{}".format(os.path.basename(filePath)))
-    if os.path.exists(tempFile):
-        os.remove(tempFile)
+    # check if output file exists
+    if os.path.exists(filePath):
+        if Configs.overwrite:
+            # open once to empty non-special files if set to overwrite output
+            open(filePath, 'w')
+        else:
+            raise ValueError(f"ERROR while writing output: {filePath} already exists and MAGUS is not set to --overwrite it!")
         
     clusterMap = {path : [[] for c in graph.clusters] for path in context.subalignmentPaths}
     for idx, cluster in enumerate(graph.clusters):
@@ -113,11 +117,11 @@ def writeUnpackedAlignment(context):
     for inducedTask in task.asCompleted(inducedSubalignTasks):
         inducedAlign = sequenceutils.readFromFasta(inducedTask.outputFile, removeDashes=False)
         Configs.log("Appending induced alignment, {} sequences of length {}..".format(len(inducedAlign), len(next(iter(inducedAlign.values())).seq)))
-        sequenceutils.writeFasta(inducedAlign, tempFile, append = True)   
+        sequenceutils.writeFasta(inducedAlign, filePath, append = True)   
         
         os.remove(inducedTask.taskArgs["alignmentColumnsPath"])
         os.remove(inducedTask.outputFile)
-    shutil.move(tempFile, filePath)
+
     Configs.log("Wrote final alignment to {}".format(filePath))        
     #Configs.log("Wrote out {} clusters..".format(len(graph.clusters)))
 
