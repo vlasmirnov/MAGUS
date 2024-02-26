@@ -114,7 +114,7 @@ class Configs:
         return Configs.dataType 
 
 def buildConfigs(args):
-    Configs.outputPath = os.path.abspath(args.output)
+    Configs.outputPath = os.path.abspath(args.output) if args.output != '-' else "/dev/stdout"
     
     if args.directory is not None:
         Configs.workingDir = os.path.abspath(args.directory) 
