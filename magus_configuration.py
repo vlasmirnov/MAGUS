@@ -8,7 +8,7 @@ from gettext import find
 import os
 import time
 from shutil import which
-from sys import platform
+from sys import platform, stdout, stderr
 import stat
 from magus_helpers import sequenceutils
 from os.path import basename
@@ -85,7 +85,7 @@ class Configs:
     
     @staticmethod
     def log(msg, path = None):
-        print(msg)
+        print(msg, file=stderr)
         path = Configs.logPath if path is None else path
         Configs.writeMsg(msg, path)
     
