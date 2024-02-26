@@ -88,7 +88,7 @@ class AlignmentGraph:
                 tokens = [int(token) for token in line.strip().split()]
                 if len(tokens) > 1:
                     self.clusters.append(tokens) 
-        print("Found {} clusters..".format(len(self.clusters)))
+        Configs.log("Found {} clusters..".format(len(self.clusters)))
     
     def buildNodeEdgeDataStructure(self):
         Configs.log("Preparing node edge data structure..")
