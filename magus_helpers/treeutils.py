@@ -13,6 +13,8 @@ import os
 import sys
 import random
 
+from sys import stderr
+
 
 def loadTree(treePath, nameSpace=None):
     tree = dendropy.Tree.get(path=treePath, schema="newick", preserve_underscores=True)
@@ -37,7 +39,7 @@ def compareTreesFromDendropy(tr1, tr2):
 
 #courtesy Erin Molloy
 def compareTreesFromPath(treePath1, treePath2):
-    print("Comparing {} with {}".format(treePath1, treePath2))
+    print("Comparing {} with {}".format(treePath1, treePath2), file=stderr)
     
     tax = dendropy.TaxonNamespace()
     tr1 = dendropy.Tree.get(path=treePath1,
@@ -65,7 +67,7 @@ def compareDendropyTrees(tr1, tr2):
     lb1 = set([l.taxon.label for l in tr1.leaf_nodes()])
     lb2 = set([l.taxon.label for l in tr2.leaf_nodes()])
     
-    print("Comparing trees with {}|{} and {}|{} leaves..".format(len(lb1), len(tr1.leaf_nodes()), len(lb2), len(tr2.leaf_nodes())))
+    print("Comparing trees with {}|{} and {}|{} leaves..".format(len(lb1), len(tr1.leaf_nodes()), len(lb2), len(tr2.leaf_nodes())), file=stderr)
     
     com = lb1.intersection(lb2)
     if com != lb1 or com != lb2:

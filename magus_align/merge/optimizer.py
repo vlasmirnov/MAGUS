@@ -157,7 +157,7 @@ class SearchContext:
         self.heap = []
         self.locked = set()
                 
-        print("Working with {} clusters..".format(len(self.clusters) - len(self.deletedClusters)))
+        Configs.log("Working with {} clusters..".format(len(self.clusters) - len(self.deletedClusters)))
         
         k = len(graph.context.subalignments)
         self.gainStructure = [[0 for j in range(graph.subalignmentLengths[i])] for i in range(k)]        

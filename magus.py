@@ -56,7 +56,7 @@ def parseArgs():
                         help="Paths to input backbone alignment files", required=False, default=[])
 
     parser.add_argument("-o", "--output", type=str,
-                        help="Output alignment path", required=True)
+                        help="Output alignment path. Will be set to /dev/stdout if '-' is passed.", required=True)
     
     parser.add_argument("-t", "--guidetree", type=str,
                         help="Guide tree for subset decomposition. fasttree (default), fasttree-noml, clustal, parttree, or path to user guide tree",
@@ -136,6 +136,9 @@ def parseArgs():
     
     parser.add_argument("--alignsizelimit", type=float,
                         help="Size threshold for alignment compression (in GB)", required=False, default=100)
+
+    parser.add_argument("--overwrite", default=False,
+                        dest='overwrite', action='store_true', help="Force overwriting of output files, even if they already exist. Default off.")
 
     parser.add_argument('--version', action='version', version=__version__)
        

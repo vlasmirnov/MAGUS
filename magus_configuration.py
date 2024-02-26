@@ -8,7 +8,7 @@ from gettext import find
 import os
 import time
 from shutil import which
-from sys import platform
+from sys import platform, stdout, stderr
 import stat
 from magus_helpers import sequenceutils
 from os.path import basename
@@ -72,6 +72,8 @@ class Configs:
     hmmsearchPath = find_binary("magus_tools/hmmer/hmmsearch")
     fasttreePath = find_binary("magus_tools/fasttree/FastTreeMP")
     raxmlPath = find_binary("magus_tools/raxmlng/raxml-ng")
+
+    overwrite = False
     
     logPath = None
     errorPath = None
@@ -83,7 +85,7 @@ class Configs:
     
     @staticmethod
     def log(msg, path = None):
-        print(msg)
+        print(msg, file=stderr)
         path = Configs.logPath if path is None else path
         Configs.writeMsg(msg, path)
     
@@ -112,7 +114,7 @@ class Configs:
         return Configs.dataType 
 
 def buildConfigs(args):
-    Configs.outputPath = os.path.abspath(args.output)
+    Configs.outputPath = os.path.abspath(args.output) if args.output != '-' else "/dev/stdout"
     
     if args.directory is not None:
         Configs.workingDir = os.path.abspath(args.directory) 
@@ -172,6 +174,8 @@ def buildConfigs(args):
     Configs.recurse = args.recurse.lower() == "true"
     Configs.recurseGuideTree = args.recurseguidetree
     Configs.recurseThreshold = args.recursethreshold
+
+    Configs.overwrite = args.overwrite
     
     Configs.logPath = os.path.join(Configs.workingDir, "log.txt")    
     Configs.errorPath = os.path.join(Configs.workingDir, "log_errors.txt")

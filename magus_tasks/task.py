@@ -52,7 +52,7 @@ class Task:
         
     def run(self):
         try:
-            if not os.path.exists(self.outputFile):
+            if not os.path.exists(self.outputFile) or Configs.overwrite:
                 Configs.log("Running a task, output file: {}".format(self.outputFile))
                 mod = importlib.import_module(Task.functionModuleMap[self.taskType])
                 func = getattr(mod, self.taskType)
@@ -95,4 +95,4 @@ def awaitTasks(tasks):
     
 def submitTasks(tasks):
     controller.submitTasks(tasks)
-    
+

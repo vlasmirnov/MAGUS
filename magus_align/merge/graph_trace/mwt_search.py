@@ -206,7 +206,7 @@ def findCycleOrCluster(graph, state, context):
                     upperNode = node
                     
                     if lowerNode in nodeClusters:
-                        #print("Complex cycle..")
+                        #Configs.log("Complex cycle..")
                         other = nodeClusters[lowerNode]
                         path = []                        
                         cur = curCluster
@@ -491,13 +491,13 @@ def edgeSetsAndCyclesToIlpAlternate(graph, edgeSets, cycles):
         model.Add(sum([edgeVars[edge] for edge in cycle]) >= 1)
     
     model.Minimize(sum([graph.matrix[edge[0]][edge[1]]*edgeVars[edge] for edge in edgeVars])) 
-    print(model.ModelStats())
+    Configs.log(model.ModelStats())
     solver.parameters.log_search_progress = True
     solver.parameters.max_time_in_seconds = 600.0
     status = solver.Solve(model)
     cost = solver.ObjectiveValue()
-    print(status)    
-    print("Result =", cost)  
+    Configs.log(status)    
+    Configs.log("Result =", cost)  
     
     removed = []
     for edge in edgeVars:

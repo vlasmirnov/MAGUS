@@ -4,6 +4,8 @@ Created on Sep 22, 2018
 @author: Vlad
 '''
 
+from sys import stderr
+
 
 class Sequence:
     def __init__(self, tag, seq):
@@ -26,7 +28,7 @@ def readFromFasta(filePath, removeDashes = False):
                     line = line.replace("-", "")
                 currentSequence.seq = currentSequence.seq + line
 
-    print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..")
+    print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..", file=stderr)
     return sequences
 
 def readFromFastaOrdered(filePath, removeDashes = False):
@@ -45,7 +47,7 @@ def readFromFastaOrdered(filePath, removeDashes = False):
                     line = line.replace("-", "")
                 currentSequence.seq = currentSequence.seq + line
 
-    print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..")
+    print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..", file=stderr)
     return sequences
 
 def readFromPhylip(filePath, removeDashes = False):
@@ -70,7 +72,7 @@ def readFromPhylip(filePath, removeDashes = False):
                     sequences[tag] = Sequence(tag, seq)
                 
     
-    print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..")                                
+    print("Read " + str(len(sequences)) + " sequences from " + filePath + " ..", file=stderr)
     return sequences
 
 #reads match columns only
@@ -129,7 +131,7 @@ def cleanGapColumns(filePath, cleanFile = None):
                 keepCols.append(i)
                 break
             
-    print("Removing gap columns.. Kept {} out of {}..".format(len(keepCols), len(values[0].seq)))
+    print("Removing gap columns.. Kept {} out of {}..".format(len(keepCols), len(values[0].seq)), file=stderr)
     for s in values:
         s.seq = ''.join(s.seq[idx] for idx in keepCols)
     
@@ -162,13 +164,13 @@ def inferDataType(filePath):
                 u = u + 1
     
     if u == 0 and (acg + t)/total > 0.9:
-        print("Found {}% ACGT-N, assuming DNA..".format(int(100*(acg + t)/total)))
+        print("Found {}% ACGT-N, assuming DNA..".format(int(100*(acg + t)/total)), file=stderr)
         dataType = "dna"
     elif t == 0 and (acg + u)/total > 0.9:
-        print("Found {}% ACGU-N, assuming RNA..".format(int(100*(acg + u)/total)))
+        print("Found {}% ACGU-N, assuming RNA..".format(int(100*(acg + u)/total)), file=stderr)
         dataType = "rna"
     else:
-        print("Assuming protein..")
+        print("Assuming protein..", file=stderr)
         dataType = "protein"
           
     return dataType

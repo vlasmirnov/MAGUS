@@ -113,7 +113,7 @@ def dealWithPendingTasks():
     numToLaunch = min(1, Configs.numCores - TaskManager.threadsUsed)
     newTasks = []
     for t in TaskManager.submittedTasks:
-        if os.path.exists(t.outputFile):
+        if os.path.exists(t.outputFile) and not Configs.overwrite:
             Configs.log("File already exists: {}".format(t.outputFile))
             t.isFinished = True
             TaskManager.observerSignal.set()
@@ -232,5 +232,4 @@ def runTask(task):
                 t.isFinished = True
             TaskManager.managerSignal.set()
             TaskManager.observerSignal.set()
-                
-        
+
