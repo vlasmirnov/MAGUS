@@ -21,7 +21,7 @@ def retrieve_packaged_binary(p):
                 continue
             # set to executable if not set already
             # this will fail in containerized environments!
-            if not os.stat(executable) & stat.S_IEXEC:
+            if not os.stat(executable).st_mode & stat.S_IEXEC:
                 os.chmod(executable, os.stat(executable).st_mode | stat.S_IEXEC)
         return p
     else:
