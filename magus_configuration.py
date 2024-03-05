@@ -19,7 +19,10 @@ def retrieve_packaged_binary(p):
         for executable in glob(os.path.dirname(p) + "/**/*",recursive=True):
             if not os.path.isfile(executable):
                 continue
-            os.chmod(executable, os.stat(p).st_mode | stat.S_IEXEC)
+            # set to executable if not set already
+            # this will fail in containerized environments!
+            if not os.stat(executable) & stat.S_IEXEC:
+                os.chmod(executable, os.stat(executable).st_mode | stat.S_IEXEC)
         return p
     else:
         return None
