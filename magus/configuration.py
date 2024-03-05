@@ -66,15 +66,15 @@ class Configs:
     recurseGuideTree = "fasttree"
     recurseThreshold = 200
     
-    clustalPath = find_binary("magus_tools/clustal/clustalo")
-    mafftPath = find_binary("magus_tools/mafft/mafft")
-    mclPath = find_binary("magus_tools/mcl/bin/mcl")
-    mlrmclPath = find_binary("magus_tools/mlrmcl/mlrmcl")
-    hmmalignPath = find_binary("magus_tools/hmmer/hmmalign")
-    hmmbuildPath = find_binary("magus_tools/hmmer/hmmbuild")
-    hmmsearchPath = find_binary("magus_tools/hmmer/hmmsearch")
-    fasttreePath = find_binary("magus_tools/fasttree/FastTreeMP")
-    raxmlPath = find_binary("magus_tools/raxmlng/raxml-ng")
+    clustalPath = find_binary("tools/clustal/clustalo")
+    mafftPath = find_binary("tools/mafft/mafft")
+    mclPath = find_binary("tools/mcl/bin/mcl")
+    mlrmclPath = find_binary("tools/mlrmcl/mlrmcl")
+    hmmalignPath = find_binary("tools/hmmer/hmmalign")
+    hmmbuildPath = find_binary("tools/hmmer/hmmbuild")
+    hmmsearchPath = find_binary("tools/hmmer/hmmsearch")
+    fasttreePath = find_binary("tools/fasttree/FastTreeMP")
+    raxmlPath = find_binary("tools/raxmlng/raxml-ng")
 
     overwrite = False
     

@@ -21,11 +21,11 @@ This also serves the purpose of allowing aborted MAGUS runs to pick up where the
 
 class Task:
     
-    functionModuleMap = {"runCommand" : "magus_tools.external_tools",
-                         "runAlignmentTask" : "magus_align.aligner",
-                         "recordGapCounts" : "magus_align.merge.alignment_writer",
-                         "buildInducedSubalignment" : "magus_align.merge.alignment_writer",
-                         "compressSubalignment" : "magus_align.merge.alignment_writer"}
+    functionModuleMap = {"runCommand" : "magus.tools.external_tools",
+                         "runAlignmentTask" : "magus.align.aligner",
+                         "recordGapCounts" : "magus.align.merge.alignment_writer",
+                         "buildInducedSubalignment" : "magus.align.merge.alignment_writer",
+                         "compressSubalignment" : "magus.align.merge.alignment_writer"}
     
     def __init__(self, taskType, outputFile, taskArgs, **kwargs):
         self.taskType = taskType
