@@ -1,6 +1,29 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
+requires = ["setuptools>=42"]
 build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "magus-msa"
+authors = [{name = "vlasmirnov"}]
+maintainers = [{name = "vlasmirnov"}, {name = "Leon Rauschning"}]
+requires-python = ">=3.6"
+description = "Multiple Sequence Alignment using Graph Clustering"
+dependencies = ["dendropy>=4.5.2"]
+readme = "README.md"
+license = {text = "MIT"}
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+]
+dynamic = ["version"]
+
+[project.urls]
+homepage = "https://github.com/vlasmirnov/MAGUS"
+issues = "https://github.com/vlasmirnov/MAGUS/issues"
+
+[tool.setuptools.dynamic]
+version = {attr = "magus.__version__"}
+
+[project.scripts]
+magus = "magus.main:main"
