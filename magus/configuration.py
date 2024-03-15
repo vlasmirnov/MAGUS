@@ -27,9 +27,11 @@ def retrieve_packaged_binary(p):
     else:
         return None
 
-def find_binary(rel_default_path):
-    default_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), rel_default_path)
-    return which(basename(rel_default_path)) or retrieve_packaged_binary(default_path)
+def find_binary(rel_path):
+    import magus.tools
+    default_path = os.path.join(os.path.dirname(os.path.abspath(magus.tools.__file__)), rel_path)
+    #return which(basename(rel_default_path)) or retrieve_packaged_binary(default_path)
+    return default_path
 
 
 class Configs:
@@ -66,15 +68,15 @@ class Configs:
     recurseGuideTree = "fasttree"
     recurseThreshold = 200
     
-    clustalPath = find_binary("tools/clustal/clustalo")
-    mafftPath = find_binary("tools/mafft/mafft")
-    mclPath = find_binary("tools/mcl/bin/mcl")
-    mlrmclPath = find_binary("tools/mlrmcl/mlrmcl")
-    hmmalignPath = find_binary("tools/hmmer/hmmalign")
-    hmmbuildPath = find_binary("tools/hmmer/hmmbuild")
-    hmmsearchPath = find_binary("tools/hmmer/hmmsearch")
-    fasttreePath = find_binary("tools/fasttree/FastTreeMP")
-    raxmlPath = find_binary("tools/raxmlng/raxml-ng")
+    clustalPath = find_binary("clustal/clustalo")
+    mafftPath = find_binary("mafft/mafft")
+    mclPath = find_binary("mcl/bin/mcl")
+    mlrmclPath = find_binary("mlrmcl/mlrmcl")
+    hmmalignPath = find_binary("hmmer/hmmalign")
+    hmmbuildPath = find_binary("hmmer/hmmbuild")
+    hmmsearchPath = find_binary("hmmer/hmmsearch")
+    fasttreePath = find_binary("fasttree/FastTreeMP")
+    raxmlPath = find_binary("raxmlng/raxml-ng")
 
     overwrite = False
     

@@ -22,6 +22,9 @@ dynamic = ["version"]
 homepage = "https://github.com/vlasmirnov/MAGUS"
 issues = "https://github.com/vlasmirnov/MAGUS/issues"
 
+[tool.setuptools]
+include-package-data = true # set explicitly in case it changes in the future
+
 [tool.setuptools.dynamic]
 version = {attr = "magus.__version__"}
 
