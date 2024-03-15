@@ -70,7 +70,7 @@ class Configs:
     
     clustalPath = find_binary("clustal/clustalo")
     mafftPath = find_binary("mafft/mafft")
-    mclPath = find_binary("mcl/bin/mcl")
+    mclPath = find_binary("mcl/mcl")
     mlrmclPath = find_binary("mlrmcl/mlrmcl")
     hmmalignPath = find_binary("hmmer/hmmalign")
     hmmbuildPath = find_binary("hmmer/hmmbuild")
