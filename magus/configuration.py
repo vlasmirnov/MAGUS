@@ -14,18 +14,19 @@ from .helpers import sequenceutils
 from os.path import basename
 from glob import glob
 
-def retrieve_packaged_binary(p):
-    if platform == "linux" or platform == "linux2":
-        for executable in glob(os.path.dirname(p) + "/**/*",recursive=True):
-            if not os.path.isfile(executable):
-                continue
-            # set to executable if not set already
-            # this will fail in containerized environments!
-            if not os.stat(executable).st_mode & stat.S_IEXEC:
-                os.chmod(executable, os.stat(executable).st_mode | stat.S_IEXEC)
-        return p
-    else:
-        return None
+# DEPRECATED, permissions are now managed during install
+#def retrieve_packaged_binary(p):
+#    if platform == "linux" or platform == "linux2":
+#        for executable in glob(os.path.dirname(p) + "/**/*",recursive=True):
+#            if not os.path.isfile(executable):
+#                continue
+#            # set to executable if not set already
+#            # this will fail in containerized environments!
+#            if not os.stat(executable).st_mode & stat.S_IEXEC:
+#                os.chmod(executable, os.stat(executable).st_mode | stat.S_IEXEC)
+#        return p
+#    else:
+#        return None
 
 def find_binary(rel_path):
     import magus.tools
